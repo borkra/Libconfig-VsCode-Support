@@ -4,6 +4,9 @@ All notable changes to this extension are documented in this file.
 
 ## [1.0.4]
 
+- Allow hex digits of arbitrary length.
+- Add GitHub Actions workflow for extension package builds.
+- Add GitHub Actions workflow for tag-based VSIX release publishing.
 - Added automatic language detection for files matching sw-description*.
 - Fixed parser CPU spin scenarios by guaranteeing forward progress in recovery loops.
 - Updated test harness to use @vscode/test-electron and removed deprecated test dependencies.
