@@ -26,7 +26,7 @@ import {
 	ScalarLibConfigNodeImpl,
 	StringLibConfigNodeImpl,
 	NumberLibConfigNodeImpl,
-	BooelanLibConfigNodeImpl
+	BooleanLibConfigNodeImpl
 } from './nodeImplementations';
 
 export {
@@ -55,5 +55,5 @@ export {
 	ScalarLibConfigNodeImpl,
 	StringLibConfigNodeImpl,
 	NumberLibConfigNodeImpl,
-	BooelanLibConfigNodeImpl
+	BooleanLibConfigNodeImpl
 };

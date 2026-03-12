@@ -54,19 +54,19 @@
 			]
 		},
 		"constant": {
-			"match": "\\b(?:true|false)\\b",
+			"match": "\\b(?:[Tt][Rr][Uu][Ee]|[Ff][Aa][Ll][Ss][Ee])\\b",
 			"name": "constant.language.libconfig"
 		},
 		"double": {
-			"match": "(?x)-?(?:0|[1-9]\\d*)(?:(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)?",
+			"match": "(?x)[+-]?(?:(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?|\\.\\d+(?:[eE][+-]?\\d+)?)",
 			"name": "constant.numeric.libconfig"
 		},
 		"integer": {
-			"match": "\\d+L",
+			"match": "[+-]?\\d+L{1,2}",
 			"name": "constant.numeric.libconfig"
 		},
 		"hex": {
-			"match": "0[xX][0-9A-Fa-f]+",
+			"match": "0[xX][0-9A-Fa-f]+L{0,2}",
 			"name": "constant.numeric.libconfig"
 		},
 		"string": {
@@ -90,18 +90,13 @@
 			]
 		},
 		"declaration": {
-			"begin": "[a-zA-Z][a-zA-Z0-9_\\-]*",
+			"begin": "[a-zA-Z\\*][a-zA-Z0-9_\\-\\*]*",
 			"beginCaptures": {
 				"0": {
 					"name": "support.type.property-name.libconfig"
 				}
 			},
-			"end": ";",
-			"endCaptures": {
-				"0": {
-					"name": "punctuation.definition.declaration.terminator.libconfig"
-				}
-			},
+			"end": "[;,]|(?=[\\}\\)\\]])|$",
 			"name": "meta.declaration.libconfig",
 			"patterns": [
 				{
@@ -228,7 +223,7 @@
 					"name": "keyword.operator.assignment.libconfig"
 				}
 			},
-			"end": "(?=;)",
+			"end": "(?=[;,\\}\\)\\]])|$",
 			"name": "meta.assignment.libconfig",
 			"patterns": [
 				{
@@ -250,7 +245,7 @@
 					"name": "keyword.operator.assignment.libconfig"
 				}
 			},
-			"end": "(?=;)",
+			"end": "(?=[;,\\}\\)\\]])|$",
 			"name": "meta.assignment.libconfig",
 			"patterns": [
 				{
@@ -268,7 +263,7 @@
 		"string-content": {
 			"patterns": [
 				{
-					"match": "(?x)\\\\(?:[\"\\\\/bfnrt]|u[0-9a-fA-F]{4})",
+					"match": "(?x)\\\\(?:[\"\\\\/abfnrtv]|x[0-9a-fA-F]{2})",
 					"name": "constant.character.escape.libconfig"
 				},
 				{
@@ -281,6 +276,12 @@
 			"patterns": [
 				{
 					"include": "#hex"
+				},
+				{
+					"include": "#binary"
+				},
+				{
+					"include": "#octal"
 				},
 				{
 					"include": "#string"
@@ -314,6 +315,22 @@
 					"include": "#object"
 				}
 			]
+		},
+		"binary": {
+			"match": "[+-]?0[bB][01]+L{0,2}",
+			"name": "constant.numeric.libconfig"
+		},
+		"octal": {
+			"match": "[+-]?0[oOqQ][0-7]+L{0,2}",
+			"name": "constant.numeric.libconfig"
 		}
+	},
+	"binary": {
+		"match": "[+-]?0[bB][01]+L{0,2}",
+		"name": "constant.numeric.libconfig"
+	},
+	"octal": {
+		"match": "[+-]?0[oOqQ][0-7]+L{0,2}",
+		"name": "constant.numeric.libconfig"
 	}
 }

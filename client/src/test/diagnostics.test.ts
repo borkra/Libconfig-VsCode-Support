@@ -7,35 +7,29 @@ import * as vscode from 'vscode'
 import * as assert from 'assert'
 import { getDocUri, activate } from './helper'
 
-describe('Should get diagnostics', () => {
-  const docUri = getDocUri('diagnostics.txt')
-
-  it('Diagnoses uppercase texts', async () => {
-    await testDiagnostics(docUri, [
-      { message: 'ANY is all uppercase.', range: toRange(0, 0, 0, 3), severity: vscode.DiagnosticSeverity.Warning, source: 'ex' },
-      { message: 'ANY is all uppercase.', range: toRange(0, 14, 0, 17), severity: vscode.DiagnosticSeverity.Warning, source: 'ex' },
-      { message: 'OS is all uppercase.', range: toRange(0, 18, 0, 20), severity: vscode.DiagnosticSeverity.Warning, source: 'ex' }
-    ])
-  })
-})
-
-function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
-  const start = new vscode.Position(sLine, sChar)
-  const end = new vscode.Position(eLine, eChar)
-  return new vscode.Range(start, end)
+export async function runDiagnosticsTest(): Promise<void> {
+  const docUri = getDocUri('diagnostics.cfg')
+  await testDiagnostics(docUri)
 }
 
-async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.Diagnostic[]) {
+async function testDiagnostics(docUri: vscode.Uri) {
   await activate(docUri)
+  const actualDiagnostics = await waitForDiagnostics(docUri)
 
-  const actualDiagnostics = vscode.languages.getDiagnostics(docUri);
+  assert.ok(actualDiagnostics.length > 0)
+  assert.ok(actualDiagnostics[0].message.includes('Expected'))
+}
 
-  assert.equal(actualDiagnostics.length, expectedDiagnostics.length);
+async function waitForDiagnostics(docUri: vscode.Uri): Promise<vscode.Diagnostic[]> {
+  const timeoutAt = Date.now() + 5000
 
-  expectedDiagnostics.forEach((expectedDiagnostic, i) => {
-    const actualDiagnostic = actualDiagnostics[i]
-    assert.equal(actualDiagnostic.message, expectedDiagnostic.message)
-    assert.deepEqual(actualDiagnostic.range, expectedDiagnostic.range)
-    assert.equal(actualDiagnostic.severity, expectedDiagnostic.severity)
-  })
+  while (Date.now() < timeoutAt) {
+    const diagnostics = vscode.languages.getDiagnostics(docUri)
+    if (diagnostics.length > 0) {
+      return diagnostics
+    }
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+
+  return vscode.languages.getDiagnostics(docUri)
 }

@@ -40,8 +40,8 @@ export function activate(context: ExtensionContext) {
 		// Register the server for libconfig documents
 		documentSelector: [{ scheme: 'file', language: 'libconfig' }],
 		synchronize: {
-			// Notify the server about file changes to '.clientrc files contained in the workspace
-			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
+			// Notify the server about file changes to '.cfg and .schema files contained in the workspace
+			fileEvents: workspace.createFileSystemWatcher('**/*.{cfg,schema}')
 		}
 	};
 

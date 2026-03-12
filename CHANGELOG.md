@@ -1,9 +1,26 @@
 # Change Log
 
-All notable changes to the "cfg" extension will be documented in this file.
+All notable changes to this extension are documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## [1.0.4]
 
-## [Unreleased]
+- Added automatic language detection for files matching sw-description*.
+- Fixed parser CPU spin scenarios by guaranteeing forward progress in recovery loops.
+- Updated test harness to use @vscode/test-electron and removed deprecated test dependencies.
+- Reduced publish package contents using stricter .vscodeignore rules.
 
-- Initial release
+## [1.0.3]
+
+- Allow capital 0X in hex code value specifier.
+
+## [1.0.2]
+
+- Maintenance update.
+
+## [1.0.1]
+
+- Maintenance update.
+
+## [1.0.0]
+
+- Initial release.
