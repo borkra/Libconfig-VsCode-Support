@@ -23,10 +23,14 @@ jobs:
         run: npm run compile && npm run bundle
 
       - name: Package VSIX
-        run: npx @vscode/vsce package --no-yarn --out libconfig-lang.vsix
+        id: package_vsix
+        uses: HaaLeo/publish-vscode-extension@v2
+        with:
+          pat: stub
+          dryRun: true
 
       - name: Publish GitHub release with VSIX
         uses: softprops/action-gh-release@v2
         with:
-          files: libconfig-lang.vsix
+          files: ${{ steps.package_vsix.outputs.vsixPath }}
           generate_release_notes: true
