@@ -59,13 +59,76 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 
 	function scanNumber(): string {
 		let start = pos;
-		if (text.charCodeAt(pos) === CharacterCodes._0) {
-			pos++;
-		} else {
+		const firstCh = text.charCodeAt(pos);
+
+		// Detect base prefix: 0b, 0B (binary), 0o/0O/0q/0Q (octal), 0x/0X (hex)
+		if (firstCh === CharacterCodes._0 && pos + 1 < text.length) {
+			const nextCh = text.charCodeAt(pos + 1);
+			if (nextCh === CharacterCodes.x || nextCh === CharacterCodes.X) {
+				// Hexadecimal
+				pos += 2;
+				while (pos < text.length && isHexDigit(text.charCodeAt(pos))) {
+					pos++;
+				}
+				// optional L or LL suffix
+				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
+					pos++;
+					if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
+				}
+				return text.substring(start, pos);
+			}
+			if (nextCh === CharacterCodes.b || nextCh === CharacterCodes.B) {
+				// Binary
+				pos += 2;
+				while (pos < text.length && (text.charCodeAt(pos) === CharacterCodes._0 || text.charCodeAt(pos) === CharacterCodes._1)) {
+					pos++;
+				}
+				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
+					pos++;
+					if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
+				}
+				return text.substring(start, pos);
+			}
+			if (nextCh === CharacterCodes.o || nextCh === CharacterCodes.O ||
+				nextCh === CharacterCodes.q || nextCh === CharacterCodes.Q) {
+				// Octal
+				pos += 2;
+				while (pos < text.length && text.charCodeAt(pos) >= CharacterCodes._0 && text.charCodeAt(pos) <= CharacterCodes._7) {
+					pos++;
+				}
+				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
+					pos++;
+					if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
+				}
+				return text.substring(start, pos);
+			}
+		}
+
+		// Leading-dot float: .digits
+		if (firstCh === CharacterCodes.dot) {
 			pos++;
 			while (pos < text.length && isDigit(text.charCodeAt(pos))) {
 				pos++;
 			}
+			// exponent
+			if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.E || text.charCodeAt(pos) === CharacterCodes.e)) {
+				pos++;
+				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.plus || text.charCodeAt(pos) === CharacterCodes.minus)) {
+					pos++;
+				}
+				if (pos < text.length && isDigit(text.charCodeAt(pos))) {
+					while (pos < text.length && isDigit(text.charCodeAt(pos))) { pos++; }
+				} else {
+					scanError = ScanError.UnexpectedEndOfNumber;
+				}
+			}
+			return text.substring(start, pos);
+		}
+
+		// Decimal integer or float
+		pos++;
+		while (pos < text.length && isDigit(text.charCodeAt(pos))) {
+			pos++;
 		}
 		if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.dot) {
 			pos++;
@@ -82,7 +145,7 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 		let end = pos;
 		if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.E || text.charCodeAt(pos) === CharacterCodes.e)) {
 			pos++;
-			if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.plus || text.charCodeAt(pos) === CharacterCodes.minus) {
+			if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.plus || text.charCodeAt(pos) === CharacterCodes.minus)) {
 				pos++;
 			}
 			if (pos < text.length && isDigit(text.charCodeAt(pos))) {
@@ -93,6 +156,13 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				end = pos;
 			} else {
 				scanError = ScanError.UnexpectedEndOfNumber;
+			}
+		} else {
+			// optional L or LL suffix for integers
+			if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) {
+				pos++;
+				if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
+				end = pos;
 			}
 		}
 		return text.substring(start, end);
@@ -148,11 +218,22 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 						result += '\t';
 						break;
 					case CharacterCodes.u:
-						const ch3 = scanHexDigits(4, true);
+						// \u is not a valid libconfig escape (it's JSON); treat as invalid
+						scanError = ScanError.InvalidEscapeCharacter;
+						break;
+					case CharacterCodes.a:
+						result += '\x07'; // BEL
+						break;
+					case CharacterCodes.v:
+						result += '\x0B'; // VT
+						break;
+					case CharacterCodes.x:
+						// \xNN — exactly 2 hex digits
+						const ch3 = scanHexDigits(2, true);
 						if (ch3 >= 0) {
 							result += String.fromCharCode(ch3);
 						} else {
-							scanError = ScanError.InvalidUnicode;
+							scanError = ScanError.InvalidEscapeCharacter;
 						}
 						break;
 					default:
@@ -258,6 +339,16 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 			case CharacterCodes.semicolon:
 				pos++;
 				return token = SyntaxKind.SemicolonToken;
+			case CharacterCodes.at: {
+				// @include "path" — consume the keyword and let the parser handle it
+				pos++;
+				let kwStart = pos;
+				while (pos < len && isValidPropertyCharacter(text.charCodeAt(pos))) {
+					pos++;
+				}
+				value = '@' + text.substring(kwStart, pos);
+				return token = SyntaxKind.Unknown;
+			}
 			// strings
 			case CharacterCodes.doubleQuote:
 				pos++;
@@ -340,6 +431,13 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 			// found a minus, followed by a number so
 			// we fall through to proceed with scanning
 			// numbers
+			case CharacterCodes.plus:
+				value += String.fromCharCode(code);
+				pos++;
+				if (pos === len || (!isDigit(text.charCodeAt(pos)) && text.charCodeAt(pos) !== CharacterCodes.dot)) {
+					return token = SyntaxKind.Unknown;
+				}
+			// found a plus, followed by a digit or dot — fall through to scan number
 			case CharacterCodes._0:
 			case CharacterCodes._1:
 			case CharacterCodes._2:
@@ -352,6 +450,15 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 			case CharacterCodes._9:
 				value += scanNumber();
 				return token = SyntaxKind.NumericLiteral;
+			case CharacterCodes.dot:
+				// Leading-dot float: .digits
+				if (pos + 1 < len && isDigit(text.charCodeAt(pos + 1))) {
+					value += scanNumber();
+					return token = SyntaxKind.NumericLiteral;
+				}
+				value += String.fromCharCode(code);
+				pos++;
+				return token = SyntaxKind.Unknown;
 			// literals and unknown symbols
 			default:
 				if (isValidPropertyCharacterStart(code)) {
@@ -359,8 +466,14 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					value = scanPropertyName();
 					// keywords: true, false
 					switch (value) {
-						case 'true': return token = SyntaxKind.TrueKeyword;
-						case 'false': return token = SyntaxKind.FalseKeyword;
+						case 'true':
+						case 'True':
+						case 'TRUE':
+							return token = SyntaxKind.TrueKeyword;
+						case 'false':
+						case 'False':
+						case 'FALSE':
+							return token = SyntaxKind.FalseKeyword;
 					}
 					return token = SyntaxKind.PropertyName;
 				}
@@ -379,6 +492,10 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					}
 					return token = SyntaxKind.Unknown;
 				}
+				}
+				// Handle case-insensitive booleans that start with upper-case letters
+				// (already handled above via isValidPropertyCharacterStart, but keep fallthrough clean)
+				{
 				// some
 				value += String.fromCharCode(code);
 				pos++;
@@ -463,12 +580,24 @@ function isDigit(ch: number): boolean {
 }
 
 function isValidPropertyCharacterStart(ch: number): boolean {
+	// Per spec: name starts with letter or '*'
 	return (ch >= CharacterCodes.A && ch <= CharacterCodes.Z) ||
 		(ch >= CharacterCodes.a && ch <= CharacterCodes.z) ||
-		(ch === CharacterCodes.underscore) || (ch === CharacterCodes.minus);
+		(ch === CharacterCodes.asterisk);
 }
 
 function isValidPropertyCharacter(ch: number): boolean {
-	return isValidPropertyCharacterStart(ch) || isDigit(ch);
+	// Per spec: name continues with letter, digit, '-', or '*'
+	return (ch >= CharacterCodes.A && ch <= CharacterCodes.Z) ||
+		(ch >= CharacterCodes.a && ch <= CharacterCodes.z) ||
+		isDigit(ch) ||
+		(ch === CharacterCodes.minus) ||
+		(ch === CharacterCodes.asterisk) ||
+		(ch === CharacterCodes.underscore);
 }
 
+function isHexDigit(ch: number): boolean {
+	return (ch >= CharacterCodes._0 && ch <= CharacterCodes._9) ||
+		(ch >= CharacterCodes.A && ch <= CharacterCodes.F) ||
+		(ch >= CharacterCodes.a && ch <= CharacterCodes.f);
+}

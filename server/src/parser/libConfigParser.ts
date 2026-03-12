@@ -19,7 +19,7 @@ import {
 	BaseLibConfigNode,
 	NumberLibConfigNodeImpl,
 	LibConfigPropertyNodeImpl,
-	BooelanLibConfigNodeImpl,
+	BooleanLibConfigNodeImpl,
 	StringLibConfigNodeImpl,
 	ObjectLibConfigNode,
 	ObjectLibConfigNodeImpl,
@@ -125,7 +125,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				);
 			case SyntaxKind.TrueKeyword:
 			case SyntaxKind.FalseKeyword:
-				return new BooelanLibConfigNodeImpl(
+				return new BooleanLibConfigNodeImpl(
 					parent,
 					scanner.getTokenOffset(),
 					scanner.getTokenLength(),
@@ -165,7 +165,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				);
 			case SyntaxKind.TrueKeyword:
 			case SyntaxKind.FalseKeyword:
-				return new BooelanLibConfigNodeImpl(
+				return new BooleanLibConfigNodeImpl(
 					parent,
 					scanner.getTokenOffset(),
 					scanner.getTokenLength(),
@@ -203,9 +203,14 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			scanner.getToken() !== SyntaxKind.CloseBraceToken &&
 			scanner.getToken() !== SyntaxKind.EOF
 		) {
+			const startPos = scanner.getPosition();
 			let setting = _parseSetting(back);
 			if(setting)
 				back.addChild(setting);
+
+			if (scanner.getPosition() === startPos) {
+				_scanNext();
+			}
 		}
 		back.length = scanner.getPosition() - back.offset;
 		return back;
@@ -236,6 +241,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			scanner.getToken() !== SyntaxKind.CloseParenToken &&
 			scanner.getToken() !== SyntaxKind.EOF
 		) {
+			const startPos = scanner.getPosition();
 			if (nextToken !== SyntaxKind.CommaToken) {
 				_error(
 					localize('CommaExpected', 'Expected a comma'),
@@ -243,9 +249,20 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					[SyntaxKind.CloseParenToken],
 					[SyntaxKind.CommaToken]
 				);
-				continue;
+				nextToken = scanner.getToken();
+				if (nextToken !== SyntaxKind.CommaToken) {
+					if (scanner.getPosition() === startPos) {
+						_scanNext();
+					}
+					continue;
+				}
 			}
-			value = _parseValue(back);
+			// Advance past the comma; if next token is ')' it's a trailing comma
+			nextToken = _scanNext();
+			if (nextToken === SyntaxKind.CloseParenToken) {
+				break;
+			}
+			value = _parseValue(back, false);
 			if(value) {
 				back.addChild(value);
 			}
@@ -283,6 +300,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			scanner.getToken() !== SyntaxKind.EOF &&
 			scanner.getToken() !== SyntaxKind.SemicolonToken
 		) {
+			const startPos = scanner.getPosition();
 			if (nextToken !== SyntaxKind.CommaToken) {
 				_error(
 					localize('CommaExpected', 'Expected a comma'),
@@ -290,9 +308,20 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					[SyntaxKind.CloseBracketToken],
 					[SyntaxKind.CommaToken]
 				);
-				continue;
+				nextToken = scanner.getToken();
+				if (nextToken !== SyntaxKind.CommaToken) {
+					if (scanner.getPosition() === startPos) {
+						_scanNext();
+					}
+					continue;
+				}
 			}
-			value = _parseScalarValue(back);
+			// Advance past the comma; if next token is ']' it's a trailing comma
+			nextToken = _scanNext();
+			if (nextToken === SyntaxKind.CloseBracketToken) {
+				break;
+			}
+			value = _parseScalarValue(back, false);
 
 			if(value) {
 				back.addChild(value);
@@ -307,15 +336,14 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 	}
 
 	function _parseTerminator() {
-		if (_scanNext() !== SyntaxKind.SemicolonToken) {
-			_error(
-				localize('ExpectedSemicolon', 'Expected a terminator'),
-				ErrorCode.SemicolonExpected
-			);
-			return;
+
+		// Per spec, terminator is optional or can be ';' or ','
+		const tok = _scanNext();
+		if (tok === SyntaxKind.SemicolonToken || tok === SyntaxKind.CommaToken) {
+			// consumed — advance so next call starts on next token
+			_scanNext();
 		}
-		// Move to next
-		_scanNext();
+		// Otherwise the token is already the start of the next setting — leave it
 	}
 
 	function _errorAtRange(message: string, code: ErrorCode, startOffset: number, endOffset: number, severity: DiagnosticSeverity = DiagnosticSeverity.Error): void {
@@ -377,13 +405,23 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		return false;
 	}
 
+	BaseLibConfigNodeImpl.clearErrorCallbacks();
 	BaseLibConfigNodeImpl.addErrorCallback((errorInfo, start, length)=>{
 		_errorAtRange(errorInfo, ErrorCode.Undefined, start, start + length)
 	});
 
-	_scanNext();
-	while (scanner.getToken() !== SyntaxKind.EOF) {
-		var prop = _parseSetting(null);
+	try {
+		_scanNext();
+		while (scanner.getToken() !== SyntaxKind.EOF) {
+			const startPos = scanner.getPosition();
+			_parseSetting(null);
+
+			if (scanner.getPosition() === startPos) {
+				_scanNext();
+			}
+		}
+	} finally {
+		BaseLibConfigNodeImpl.clearErrorCallbacks();
 	}
 	return new LibConfigDocument(problems, commentRanges);
 }

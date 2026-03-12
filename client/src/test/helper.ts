@@ -15,8 +15,19 @@ export let platformEol: string;
  * Activates the vscode.lsp-sample extension
  */
 export async function activate(docUri: vscode.Uri) {
-	// The extensionId is `publisher.name` from package.json
-	const ext = vscode.extensions.getExtension('vscode-samples.lsp-sample')!;
+	const extensionIds = [
+		'boris-krasnovskiy.libconfig-lang',
+		'borkra.libconfig-lang',
+		'tmulligan.libconfig-lang'
+	];
+
+	const ext = extensionIds
+		.map((id) => vscode.extensions.getExtension(id))
+		.find((candidate) => !!candidate);
+
+	if (!ext) {
+		throw new Error('LibConfig extension is not installed for tests.');
+	}
 	await ext.activate();
 	try {
 		doc = await vscode.workspace.openTextDocument(docUri);

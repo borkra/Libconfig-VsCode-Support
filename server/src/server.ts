@@ -6,14 +6,15 @@
 import {
 	createConnection,
 	TextDocuments,
-	TextDocument,
 	Diagnostic,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
 	TextEdit,
-	Range
+	Range,
+	TextDocumentSyncKind
 } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { 
 	formatError, 
@@ -42,7 +43,7 @@ connection.console.log('SERVER STARTED');
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
-let documents: TextDocuments = new TextDocuments();
+let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 let hasConfigurationCapability: boolean = false;
 let hasWorkspaceFolderCapability: boolean = false;
@@ -67,7 +68,7 @@ connection.onInitialize((params: InitializeParams) => {
 
 	return {
 		capabilities: {
-			textDocumentSync: documents.syncKind,
+			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that the server supports code completion
 			completionProvider: {
 				resolveProvider: true
@@ -180,7 +181,7 @@ documents.onDidClose(event => {
 	connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 });
 
-const pendingValidationRequests: { [uri: string]: NodeJS.Timer; } = {};
+const pendingValidationRequests: { [uri: string]: NodeJS.Timeout; } = {};
 const validationDelayMs = 500;
 
 function cleanPendingValidation(textDocument: TextDocument): void {
@@ -232,6 +233,16 @@ connection.onDidChangeWatchedFiles((change) => {
 	if (hasChanges) {
 		documents.all().forEach(triggerValidation);
 	}
+});
+
+connection.onCompletion((_params, _token) => {
+	// Completion is advertised by capability; return an empty list until
+	// language-specific completion items are implemented.
+	return [];
+});
+
+connection.onCompletionResolve((item, _token) => {
+	return item;
 });
 
 connection.onFoldingRanges((params, token) => {

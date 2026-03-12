@@ -1,23 +1,29 @@
 /**
  * Error codes used by diagnostics
  */
+const enum ErrorCodeGroup {
+	Scanner = 0x100,
+	Parser = 0x200,
+	Terminator = 0x300
+}
+
 export enum ErrorCode {
 	Undefined = 0,
 	EnumValueMismatch = 1,
-	UnexpectedEndOfComment = 0x101,
-	UnexpectedEndOfString = 0x102,
-	UnexpectedEndOfNumber = 0x103,
-	InvalidUnicode = 0x104,
-	InvalidEscapeCharacter = 0x105,
-	InvalidCharacter = 0x106,
-	PropertyExpected = 0x201,
-	CommaExpected = 0x202,
-	ColonExpected = 0x203,
-	ValueExpected = 0x204,
-	CommaOrCloseBacketExpected = 0x205,
-	CommaOrCloseBraceExpected = 0x206,
-	TrailingComma = 0x207,
-	DuplicateKey = 0x208,
-	CommentNotPermitted = 0x209,
-	SemicolonExpected = 0x300
+	UnexpectedEndOfComment = ErrorCodeGroup.Scanner + 0x01,
+	UnexpectedEndOfString,
+	UnexpectedEndOfNumber,
+	InvalidUnicode,
+	InvalidEscapeCharacter,
+	InvalidCharacter,
+	PropertyExpected = ErrorCodeGroup.Parser + 0x01,
+	CommaExpected,
+	ColonExpected,
+	ValueExpected,
+	CommaOrCloseBacketExpected,
+	CommaOrCloseBraceExpected,
+	TrailingComma,
+	DuplicateKey,
+	CommentNotPermitted,
+	SemicolonExpected = ErrorCodeGroup.Terminator
 }

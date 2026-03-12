@@ -1,6 +1,9 @@
 {
 	"editor.insertSpaces": false,
+	"files.associations": {
+		"sw-description*": "libconfig"
+	},
 	"tslint.enable": true,
-	"typescript.tsc.autoDetect": "off",
-	"typescript.preferences.quoteStyle": "single"
+	"js/ts.tsc.autoDetect": "off",
+	"js/ts.preferences.quoteStyle": "single"
 }

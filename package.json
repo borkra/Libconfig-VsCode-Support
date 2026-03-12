@@ -2,14 +2,15 @@
     "name": "libconfig-lang",
     "displayName": "LibConfig",
     "description": "LibConfig Syntax Highlighting (Fork)",
-    "version": "1.0.3",
-    "publisher": "tmulligan",
+    "version": "1.0.4",
+    "icon": "media/icon.png",
+    "publisher": "borkra",
     "repository": {
         "type": "git",
         "url": "https://github.com/mtayler/Libconfig-VsCode-Support"
     },
     "engines": {
-        "vscode": "^1.40.0"
+        "vscode": "^1.41.0"
     },
     "categories": [
         "Programming Languages"
@@ -30,6 +31,10 @@
                     ".cfg",
                     ".schema"
                 ],
+                "filenamePatterns": [
+                    "sw-description*"
+                ],
+                "firstLine": "^\\s*software\\s*=\\s*\\{",
                 "configuration": "./language-configuration.json"
             }
         ],
@@ -65,16 +70,17 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
+        "vscode:prepublish": "npm run compile && npm run bundle",
         "compile": "tsc -b",
+        "bundle": "node scripts/bundle.js",
         "watch": "tsc -b -w",
         "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
         "test": "sh ./scripts/e2e.sh"
     },
     "devDependencies": {
-        "@types/mocha": "^5.2.0",
-        "@types/node": "^8.0.0",
-        "tslint": "^5.16.0",
-        "typescript": "^3.5.1"
+        "@vscode/test-electron": "^2.5.2",
+        "@types/node": "^16.0.0",
+        "esbuild": "^0.18.0",
+        "typescript": "^5.0.0"
     }
 }

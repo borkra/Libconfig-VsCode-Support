@@ -32,11 +32,18 @@ export abstract class BaseLibConfigNodeImpl implements BaseLibConfigNode {
 	}
 
 	/**
+	 * Removes all registered error callbacks.
+	 */
+	static clearErrorCallbacks(){
+		this.errorCallbacks = [];
+	}
+
+	/**
 	 * Calls all callback functions with the necessary error information
 	 * @param errorInfo The error information for the call
 	 */
 	protected static Error(errorInfo:string, start:number, length:number){
-		BaseLibConfigNodeImpl.errorCallbacks.map((value)=>{
+		BaseLibConfigNodeImpl.errorCallbacks.forEach((value)=>{
 			value(errorInfo, start, length);
 		});
 	}
@@ -98,7 +105,7 @@ export class ObjectLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Ob
 	public readonly type: 'object' = 'object';
 	private _properties: LibConfigPropertyNode[] = [];
 	public readonly parent: LibConfigPropertyNode | ListLibConfigNode;
-	public value: null;
+	public value: null = null;
 	
 	constructor(
 		parent: LibConfigPropertyNode | ListLibConfigNode, 
@@ -171,7 +178,7 @@ export class ListLibConfigNodeImpl extends BaseLibConfigNodeImpl implements List
 	public readonly type: 'list' = 'list';
 	private _children: BaseLibConfigNode[] = [];
 	public readonly parent: LibConfigPropertyNode | ListLibConfigNode;
-	public value: null;
+	public value: null = null;
 	
 	constructor(
 		parent: LibConfigPropertyNode | ListLibConfigNode, 
@@ -236,7 +243,7 @@ export class ArrayLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Arr
 	public readonly type: 'array' = 'array';
 	private _children: ScalarLibConfigNode[] = [];
 	readonly parent: LibConfigPropertyNode | ListLibConfigNode;
-	public value: null;
+	public value: null = null;
 	
 	constructor(
 		parent: LibConfigPropertyNode | ListLibConfigNode, 
@@ -410,7 +417,7 @@ export class NumberLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements 
 	}
 }
 
-export class BooelanLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements BooleanLibConfigNode {
+export class BooleanLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements BooleanLibConfigNode {
 	public readonly type: 'boolean' = 'boolean';
 	public value: boolean;
 	
@@ -442,4 +449,3 @@ export class BooelanLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements
 		return !invalid;
 	}
 }
-
