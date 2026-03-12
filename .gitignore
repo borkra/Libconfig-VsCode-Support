@@ -332,5 +332,11 @@ ASALocalRun/
 client/out/
 server/out/
 
+# VS Code local tooling artifacts
+.vscode*
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
 *.vsix
 package-lock.json
