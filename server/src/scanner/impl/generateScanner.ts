@@ -199,9 +199,6 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					case CharacterCodes.backslash:
 						result += '\\';
 						break;
-					case CharacterCodes.slash:
-						result += '/';
-						break;
 					case CharacterCodes.b:
 						result += '\b';
 						break;
@@ -217,10 +214,6 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					case CharacterCodes.t:
 						result += '\t';
 						break;
-					case CharacterCodes.u:
-						// \u is not a valid libconfig escape (it's JSON); treat as invalid
-						scanError = ScanError.InvalidEscapeCharacter;
-						break;
 					case CharacterCodes.a:
 						result += '\x07'; // BEL
 						break;
@@ -228,16 +221,19 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 						result += '\x0B'; // VT
 						break;
 					case CharacterCodes.x:
+					case CharacterCodes.X:
 						// \xNN — exactly 2 hex digits
 						const ch3 = scanHexDigits(2, true);
 						if (ch3 >= 0) {
 							result += String.fromCharCode(ch3);
 						} else {
-							scanError = ScanError.InvalidEscapeCharacter;
+							// Preserve unsupported escape literally for compatibility with libconfig scanner behavior
+							result += '\\' + String.fromCharCode(ch2);
 						}
 						break;
 					default:
-						scanError = ScanError.InvalidEscapeCharacter;
+						// Preserve unsupported escapes literally (e.g. \u, \/)
+						result += '\\' + String.fromCharCode(ch2);
 				}
 				start = pos;
 				continue;
@@ -347,6 +343,9 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					pos++;
 				}
 				value = '@' + text.substring(kwStart, pos);
+				if (value === '@include') {
+					return token = SyntaxKind.IncludeDirective;
+				}
 				return token = SyntaxKind.Unknown;
 			}
 			// strings
@@ -428,6 +427,15 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				if (pos === len || !isDigit(text.charCodeAt(pos))) {
 					return token = SyntaxKind.Unknown;
 				}
+				if (pos + 1 < len && text.charCodeAt(pos) === CharacterCodes._0 && isBasePrefix(text.charCodeAt(pos + 1))) {
+					const invalidStart = pos;
+					pos += 2;
+					while (pos < len && isAlphaNumeric(text.charCodeAt(pos))) {
+						pos++;
+					}
+					value += text.substring(invalidStart, pos);
+					return token = SyntaxKind.Unknown;
+				}
 			// found a minus, followed by a number so
 			// we fall through to proceed with scanning
 			// numbers
@@ -435,6 +443,15 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				value += String.fromCharCode(code);
 				pos++;
 				if (pos === len || (!isDigit(text.charCodeAt(pos)) && text.charCodeAt(pos) !== CharacterCodes.dot)) {
+					return token = SyntaxKind.Unknown;
+				}
+				if (pos + 1 < len && text.charCodeAt(pos) === CharacterCodes._0 && isBasePrefix(text.charCodeAt(pos + 1))) {
+					const invalidStart = pos;
+					pos += 2;
+					while (pos < len && isAlphaNumeric(text.charCodeAt(pos))) {
+						pos++;
+					}
+					value += text.substring(invalidStart, pos);
 					return token = SyntaxKind.Unknown;
 				}
 			// found a plus, followed by a digit or dot — fall through to scan number
@@ -465,14 +482,11 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					pos++;
 					value = scanPropertyName();
 					// keywords: true, false
-					switch (value) {
+					const lcValue = value.toLowerCase();
+					switch (lcValue) {
 						case 'true':
-						case 'True':
-						case 'TRUE':
 							return token = SyntaxKind.TrueKeyword;
 						case 'false':
-						case 'False':
-						case 'FALSE':
 							return token = SyntaxKind.FalseKeyword;
 					}
 					return token = SyntaxKind.PropertyName;
@@ -600,4 +614,21 @@ function isHexDigit(ch: number): boolean {
 	return (ch >= CharacterCodes._0 && ch <= CharacterCodes._9) ||
 		(ch >= CharacterCodes.A && ch <= CharacterCodes.F) ||
 		(ch >= CharacterCodes.a && ch <= CharacterCodes.f);
+}
+
+function isAlphaNumeric(ch: number): boolean {
+	return (ch >= CharacterCodes._0 && ch <= CharacterCodes._9) ||
+		(ch >= CharacterCodes.A && ch <= CharacterCodes.Z) ||
+		(ch >= CharacterCodes.a && ch <= CharacterCodes.z);
+}
+
+function isBasePrefix(ch: number): boolean {
+	return ch === CharacterCodes.x ||
+		ch === CharacterCodes.X ||
+		ch === CharacterCodes.b ||
+		ch === CharacterCodes.B ||
+		ch === CharacterCodes.o ||
+		ch === CharacterCodes.O ||
+		ch === CharacterCodes.q ||
+		ch === CharacterCodes.Q;
 }

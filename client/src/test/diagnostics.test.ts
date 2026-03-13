@@ -10,6 +10,8 @@ import { getDocUri, activate } from './helper'
 export async function runDiagnosticsTest(): Promise<void> {
   await testSyntaxDiagnostics(getDocUri('diagnostics.cfg'))
   await testCompatibilityDiagnostics(getDocUri('compatibility.cfg'))
+  await testSpecVariantsDiagnostics(getDocUri('spec-variants.cfg'))
+  await testSignedBaseInvalidDiagnostics(getDocUri('signed-base-invalid.cfg'))
 }
 
 async function testSyntaxDiagnostics(docUri: vscode.Uri) {
@@ -26,13 +28,36 @@ async function testCompatibilityDiagnostics(docUri: vscode.Uri) {
 
   const compatibilityDiagnostics = actualDiagnostics.filter(d =>
     typeof d.code === 'number' &&
-    d.code === 0x300 &&
+    d.code >= 0x300 &&
+    d.code < 0x400 &&
     d.severity === vscode.DiagnosticSeverity.Warning
   )
 
-  assert.ok(compatibilityDiagnostics.length >= 2)
+  assert.ok(compatibilityDiagnostics.length >= 4)
   assert.ok(compatibilityDiagnostics.some(d => d.message.includes("Use ';' instead of ','")))
   assert.ok(compatibilityDiagnostics.some(d => d.message.includes("Missing ';' terminator")))
+  assert.ok(compatibilityDiagnostics.some(d => d.message.includes('Trailing comma in list')))
+  assert.ok(compatibilityDiagnostics.some(d => d.message.includes('Trailing comma in array')))
+}
+
+async function testSpecVariantsDiagnostics(docUri: vscode.Uri) {
+  await activate(docUri)
+  const actualDiagnostics = await waitForDiagnostics(docUri)
+
+  const errorDiagnostics = actualDiagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error)
+  assert.strictEqual(errorDiagnostics.length, 0)
+}
+
+async function testSignedBaseInvalidDiagnostics(docUri: vscode.Uri) {
+  await activate(docUri)
+  const actualDiagnostics = await waitForDiagnostics(docUri)
+
+  const valueDiagnostics = actualDiagnostics.filter(d =>
+    d.severity === vscode.DiagnosticSeverity.Error &&
+    d.message.includes('Expected setting type kind value')
+  )
+
+  assert.ok(valueDiagnostics.length >= 3)
 }
 
 async function waitForDiagnostics(docUri: vscode.Uri): Promise<vscode.Diagnostic[]> {
