@@ -336,14 +336,33 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 	}
 
 	function _parseTerminator() {
-
-		// Per spec, terminator is optional or can be ';' or ','
+		const valueEndOffset = scanner.getTokenOffset() + scanner.getTokenLength();
 		const tok = _scanNext();
-		if (tok === SyntaxKind.SemicolonToken || tok === SyntaxKind.CommaToken) {
-			// consumed — advance so next call starts on next token
+
+		if (tok === SyntaxKind.SemicolonToken) {
 			_scanNext();
+			return;
 		}
-		// Otherwise the token is already the start of the next setting — leave it
+
+		if (tok === SyntaxKind.CommaToken) {
+			_errorAtRange(
+				localize('CommaTerminatorCompatibility', "Use ';' instead of ',' as a setting terminator for parser compatibility."),
+				ErrorCode.SemicolonExpected,
+				scanner.getTokenOffset(),
+				scanner.getTokenOffset() + scanner.getTokenLength(),
+				DiagnosticSeverity.Warning
+			);
+			_scanNext();
+			return;
+		}
+
+		_errorAtRange(
+			localize('MissingSemicolonCompatibility', "Missing ';' terminator may not be supported by all parsers."),
+			ErrorCode.SemicolonExpected,
+			valueEndOffset,
+			valueEndOffset,
+			DiagnosticSeverity.Warning
+		);
 	}
 
 	function _errorAtRange(message: string, code: ErrorCode, startOffset: number, endOffset: number, severity: DiagnosticSeverity = DiagnosticSeverity.Error): void {

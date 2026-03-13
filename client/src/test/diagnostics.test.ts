@@ -8,16 +8,31 @@ import * as assert from 'assert'
 import { getDocUri, activate } from './helper'
 
 export async function runDiagnosticsTest(): Promise<void> {
-  const docUri = getDocUri('diagnostics.cfg')
-  await testDiagnostics(docUri)
+  await testSyntaxDiagnostics(getDocUri('diagnostics.cfg'))
+  await testCompatibilityDiagnostics(getDocUri('compatibility.cfg'))
 }
 
-async function testDiagnostics(docUri: vscode.Uri) {
+async function testSyntaxDiagnostics(docUri: vscode.Uri) {
   await activate(docUri)
   const actualDiagnostics = await waitForDiagnostics(docUri)
 
   assert.ok(actualDiagnostics.length > 0)
   assert.ok(actualDiagnostics[0].message.includes('Expected'))
+}
+
+async function testCompatibilityDiagnostics(docUri: vscode.Uri) {
+  await activate(docUri)
+  const actualDiagnostics = await waitForDiagnostics(docUri)
+
+  const compatibilityDiagnostics = actualDiagnostics.filter(d =>
+    typeof d.code === 'number' &&
+    d.code === 0x300 &&
+    d.severity === vscode.DiagnosticSeverity.Warning
+  )
+
+  assert.ok(compatibilityDiagnostics.length >= 2)
+  assert.ok(compatibilityDiagnostics.some(d => d.message.includes("Use ';' instead of ','")))
+  assert.ok(compatibilityDiagnostics.some(d => d.message.includes("Missing ';' terminator")))
 }
 
 async function waitForDiagnostics(docUri: vscode.Uri): Promise<vscode.Diagnostic[]> {
