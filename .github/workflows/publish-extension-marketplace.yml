@@ -17,6 +17,8 @@ permissions:
 jobs:
   publish-marketplace:
     runs-on: ubuntu-latest
+    env:
+      MARKETPLACE_PAT: ${{ secrets.VSCE_PAT != '' && secrets.VSCE_PAT || secrets.VSCE_TOKEN }}
 
     steps:
       - name: Validate release tag exists
@@ -36,7 +38,14 @@ jobs:
       - name: Build extension
         run: npm run compile && npm run bundle
 
+      - name: Validate marketplace token
+        run: |
+          if [ -z "${MARKETPLACE_PAT}" ]; then
+            echo "Missing marketplace token. Set repository secret VSCE_PAT or VSCE_TOKEN."
+            exit 1
+          fi
+
       - name: Publish to VS Code Marketplace
         uses: HaaLeo/publish-vscode-extension@v2
         with:
-          pat: ${{ secrets.VSCE_PAT }}
+          pat: ${{ env.MARKETPLACE_PAT }}
