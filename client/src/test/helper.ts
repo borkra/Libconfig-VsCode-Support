@@ -31,6 +31,7 @@ export async function activate(docUri: vscode.Uri) {
 	await ext.activate();
 	try {
 		doc = await vscode.workspace.openTextDocument(docUri);
+		doc = await vscode.languages.setTextDocumentLanguage(doc, 'libconfig');
 		editor = await vscode.window.showTextDocument(doc);
 		await sleep(2000); // Wait for server activation
 	} catch (e) {

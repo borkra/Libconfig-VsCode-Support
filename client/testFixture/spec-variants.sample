@@ -1,4 +1,4 @@
-@include "compatibility.cfg"
+@include "compatibility.sample"
 
 mixedCaseTrue = TrUe;
 mixedCaseFalse = fAlSe;
