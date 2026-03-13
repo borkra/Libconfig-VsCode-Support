@@ -16,6 +16,10 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
+	if (client) {
+		return;
+	}
+
 	// The server is implemented in node
 	let serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
@@ -36,12 +40,15 @@ export function activate(context: ExtensionContext) {
 	};
 
 	// Options to control the language client
+	const fileEvents = workspace.createFileSystemWatcher('**/*.{cfg,schema}');
+	context.subscriptions.push(fileEvents);
+
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for libconfig documents
 		documentSelector: [{ scheme: 'file', language: 'libconfig' }],
 		synchronize: {
 			// Notify the server about file changes to '.cfg and .schema files contained in the workspace
-			fileEvents: workspace.createFileSystemWatcher('**/*.{cfg,schema}')
+			fileEvents
 		}
 	};
 
@@ -54,12 +61,14 @@ export function activate(context: ExtensionContext) {
 	);
 
 	// Start the client. This will also launch the server
-	client.start();
+	context.subscriptions.push(client.start());
 }
 
 export function deactivate(): Thenable<void> | undefined {
 	if (!client) {
 		return undefined;
 	}
-	return client.stop();
+	const activeClient = client;
+	client = undefined as any;
+	return activeClient.stop();
 }
