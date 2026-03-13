@@ -8,7 +8,7 @@ import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
 export async function runCompletionTest(): Promise<void> {
-	const docUri = getDocUri('completion.cfg');
+	const docUri = getDocUri('completion.sample');
 	await testCompletion(docUri, new vscode.Position(0, 0), {
 		items: []
 	});

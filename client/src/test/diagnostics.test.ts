@@ -8,10 +8,10 @@ import * as assert from 'assert'
 import { getDocUri, activate } from './helper'
 
 export async function runDiagnosticsTest(): Promise<void> {
-  await testSyntaxDiagnostics(getDocUri('diagnostics.cfg'))
-  await testCompatibilityDiagnostics(getDocUri('compatibility.cfg'))
-  await testSpecVariantsDiagnostics(getDocUri('spec-variants.cfg'))
-  await testSignedBaseInvalidDiagnostics(getDocUri('signed-base-invalid.cfg'))
+  await testSyntaxDiagnostics(getDocUri('diagnostics.sample'))
+  await testCompatibilityDiagnostics(getDocUri('compatibility.sample'))
+  await testSpecVariantsDiagnostics(getDocUri('spec-variants.sample'))
+  await testSignedBaseInvalidDiagnostics(getDocUri('signed-base-invalid.sample'))
 }
 
 async function testSyntaxDiagnostics(docUri: vscode.Uri) {
