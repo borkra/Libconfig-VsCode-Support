@@ -18,7 +18,7 @@ jobs:
   publish-marketplace:
     runs-on: ubuntu-latest
     env:
-      MARKETPLACE_PAT: ${{ secrets.VSCE_PAT != '' && secrets.VSCE_PAT || secrets.VSCE_TOKEN }}
+      MARKETPLACE_PAT: ${{ secrets.VSCE_PAT }}
 
     steps:
       - name: Validate release tag exists
@@ -41,7 +41,7 @@ jobs:
       - name: Validate marketplace token
         run: |
           if [ -z "${MARKETPLACE_PAT}" ]; then
-            echo "Missing marketplace token. Set repository secret VSCE_PAT or VSCE_TOKEN."
+            echo "Missing marketplace token. Set repository secret VSCE_PAT."
             exit 1
           fi
 
