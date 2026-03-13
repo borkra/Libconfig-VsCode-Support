@@ -16,10 +16,11 @@ export enum SyntaxKind {
 	StringLiteral = 13,
 	NumericLiteral = 14,
 	PropertyName = 15,
-	LineCommentTrivia = 16,
-	BlockCommentTrivia = 17,
-	LineBreakTrivia = 18,
-	Trivia = 19,
-	Unknown = 20,
-	EOF = 21
+	IncludeDirective = 16,
+	LineCommentTrivia = 17,
+	BlockCommentTrivia = 18,
+	LineBreakTrivia = 19,
+	Trivia = 20,
+	Unknown = 21,
+	EOF = 22
 }

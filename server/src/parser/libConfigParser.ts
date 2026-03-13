@@ -45,6 +45,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 	let text: string = textDocument.getText();
 	let scanner: LibConfigScanner = CreateDefaultScanner(text, false);
 	let commentRanges: Range[] = [];
+	let hasBufferedToken: boolean = false;
 
 	function _scanNext(): SyntaxKind {
 		while (true) {
@@ -64,6 +65,51 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					return token;
 			}
 		}
+	}
+
+	function _takeBufferedOrScanNext(): SyntaxKind {
+		if (hasBufferedToken) {
+			hasBufferedToken = false;
+			return scanner.getToken();
+		}
+		return _scanNext();
+	}
+
+	function _parseConcatenatedString(parent: LibConfigPropertyNode | ArrayLibConfigNode | ListLibConfigNode): StringLibConfigNodeImpl {
+		const startOffset = scanner.getTokenOffset();
+		let value = scanner.getTokenValue();
+		let endOffset = scanner.getTokenOffset() + scanner.getTokenLength();
+
+		while (true) {
+			const tok = _scanNext();
+			if (tok !== SyntaxKind.StringLiteral) {
+				hasBufferedToken = true;
+				break;
+			}
+			value += scanner.getTokenValue();
+			endOffset = scanner.getTokenOffset() + scanner.getTokenLength();
+		}
+
+		return new StringLibConfigNodeImpl(
+			parent,
+			startOffset,
+			endOffset - startOffset,
+			value
+		);
+	}
+
+	function _parseIncludeDirective(): void {
+		const includeToken = _scanNext();
+		if (includeToken !== SyntaxKind.StringLiteral) {
+			_error(
+				localize('ExpectedIncludePath', 'Expected a quoted include path after @include'),
+				ErrorCode.ValueExpected,
+				[SyntaxKind.SemicolonToken]
+			);
+			return;
+		}
+
+		_scanNext();
 	}
 
 	function _parseSetting(
@@ -121,7 +167,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					parent,
 					scanner.getTokenOffset(),
 					scanner.getTokenLength(),
-					parseFloat(scanner.getTokenValue())
+					_parseNumericLiteral(scanner.getTokenValue())
 				);
 			case SyntaxKind.TrueKeyword:
 			case SyntaxKind.FalseKeyword:
@@ -132,12 +178,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					scanner.getTokenValue().toLowerCase() === 'true'
 				);	
 			case SyntaxKind.StringLiteral:
-				return new StringLibConfigNodeImpl(
-					parent,
-					scanner.getTokenOffset(),
-					scanner.getTokenLength(),
-					scanner.getTokenValue()
-				);	
+				return _parseConcatenatedString(parent);
 			default:
 				_error(
 					localize('UnrecognizedType', 'Expected setting type kind value'),
@@ -161,7 +202,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					parent,
 					scanner.getTokenOffset(),
 					scanner.getTokenLength(),
-					parseFloat(scanner.getTokenValue())
+					_parseNumericLiteral(scanner.getTokenValue())
 				);
 			case SyntaxKind.TrueKeyword:
 			case SyntaxKind.FalseKeyword:
@@ -172,12 +213,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					scanner.getTokenValue().toLowerCase() === 'true'
 				);	
 			case SyntaxKind.StringLiteral:
-				return new StringLibConfigNodeImpl(
-					parent,
-					scanner.getTokenOffset(),
-					scanner.getTokenLength(),
-					scanner.getTokenValue()
-				);	
+				return _parseConcatenatedString(parent);
 			default:
 				_error(
 					localize('UnrecognizedType', 'Expected setting type kind value'),
@@ -187,6 +223,34 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				);
 				return;
 		}
+	}
+	function _parseNumericLiteral(raw: string): number {
+		let literal = raw.trim();
+		let sign = 1;
+
+		if (literal.startsWith('+')) {
+			literal = literal.substring(1);
+		} else if (literal.startsWith('-')) {
+			sign = -1;
+			literal = literal.substring(1);
+		}
+
+		literal = literal.replace(/L{1,2}$/i, '');
+
+		if (/^0[xX][0-9a-fA-F]+$/.test(literal)) {
+			return sign * parseInt(literal.substring(2), 16);
+		}
+
+		if (/^0[bB][01]+$/.test(literal)) {
+			return sign * parseInt(literal.substring(2), 2);
+		}
+
+		if (/^0[oOqQ][0-7]+$/.test(literal)) {
+			return sign * parseInt(literal.substring(2), 8);
+		}
+
+		const parsed = Number(literal);
+		return sign * (isNaN(parsed) ? 0 : parsed);
 	}
 
 	function _parseGroup(parent: LibConfigPropertyNode | ListLibConfigNode) : ObjectLibConfigNode {
@@ -204,6 +268,10 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			scanner.getToken() !== SyntaxKind.EOF
 		) {
 			const startPos = scanner.getPosition();
+			if (scanner.getToken() === SyntaxKind.IncludeDirective) {
+				_parseIncludeDirective();
+				continue;
+			}
 			let setting = _parseSetting(back);
 			if(setting)
 				back.addChild(setting);
@@ -235,7 +303,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		if(value){
 			back.addChild(value);
 		}
-		let nextToken = _scanNext();
+		let nextToken = _takeBufferedOrScanNext();
 
 		while (
 			scanner.getToken() !== SyntaxKind.CloseParenToken &&
@@ -258,15 +326,24 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				}
 			}
 			// Advance past the comma; if next token is ')' it's a trailing comma
+			const commaStart = scanner.getTokenOffset();
+			const commaEnd = commaStart + scanner.getTokenLength();
 			nextToken = _scanNext();
 			if (nextToken === SyntaxKind.CloseParenToken) {
+				_errorAtRange(
+					localize('TrailingCommaCompatibilityList', "Trailing comma in list may not be supported by older libconfig parsers."),
+					ErrorCode.TrailingCommaCompatibility,
+					commaStart,
+					commaEnd,
+					DiagnosticSeverity.Warning
+				);
 				break;
 			}
 			value = _parseValue(back, false);
 			if(value) {
 				back.addChild(value);
 			}
-			nextToken = _scanNext();
+			nextToken = _takeBufferedOrScanNext();
 		}
 
 		back.length = scanner.getPosition() - back.offset;
@@ -293,7 +370,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			back.addChild(value);
 		}
 
-		let nextToken = _scanNext();
+		let nextToken = _takeBufferedOrScanNext();
 
 		while (
 			scanner.getToken() !== SyntaxKind.CloseBracketToken &&
@@ -317,8 +394,17 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				}
 			}
 			// Advance past the comma; if next token is ']' it's a trailing comma
+			const commaStart = scanner.getTokenOffset();
+			const commaEnd = commaStart + scanner.getTokenLength();
 			nextToken = _scanNext();
 			if (nextToken === SyntaxKind.CloseBracketToken) {
+				_errorAtRange(
+					localize('TrailingCommaCompatibilityArray', "Trailing comma in array may not be supported by older libconfig parsers."),
+					ErrorCode.TrailingCommaCompatibility,
+					commaStart,
+					commaEnd,
+					DiagnosticSeverity.Warning
+				);
 				break;
 			}
 			value = _parseScalarValue(back, false);
@@ -327,7 +413,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				back.addChild(value);
 			}
 
-			nextToken = _scanNext();
+			nextToken = _takeBufferedOrScanNext();
 		}
 
 		back.length = scanner.getTokenOffset() - back.offset;
@@ -337,7 +423,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 
 	function _parseTerminator() {
 		const valueEndOffset = scanner.getTokenOffset() + scanner.getTokenLength();
-		const tok = _scanNext();
+		const tok = _takeBufferedOrScanNext();
 
 		if (tok === SyntaxKind.SemicolonToken) {
 			_scanNext();
@@ -433,6 +519,10 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		_scanNext();
 		while (scanner.getToken() !== SyntaxKind.EOF) {
 			const startPos = scanner.getPosition();
+			if (scanner.getToken() === SyntaxKind.IncludeDirective) {
+				_parseIncludeDirective();
+				continue;
+			}
 			_parseSetting(null);
 
 			if (scanner.getPosition() === startPos) {

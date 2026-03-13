@@ -25,5 +25,6 @@ export enum ErrorCode {
 	TrailingComma,
 	DuplicateKey,
 	CommentNotPermitted,
-	SemicolonExpected = ErrorCodeGroup.Terminator
+	SemicolonExpected = ErrorCodeGroup.Terminator,
+	TrailingCommaCompatibility
 }
