@@ -4,33 +4,33 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import { ExtensionContext } from 'vscode';
 
 import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
 	TransportKind
-} from 'vscode-languageclient';
+} from 'vscode-languageclient/node';
 
 let client: LanguageClient;
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
 	if (client) {
 		return;
 	}
 
 	// The server is implemented in node
-	let serverModule = context.asAbsolutePath(
+	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
 	// The debug options for the server
 	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
-	let debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+	const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
-	let serverOptions: ServerOptions = {
+	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: {
 			module: serverModule,
@@ -40,16 +40,9 @@ export function activate(context: ExtensionContext) {
 	};
 
 	// Options to control the language client
-	const fileEvents = workspace.createFileSystemWatcher('**/*.{cfg,schema}');
-	context.subscriptions.push(fileEvents);
-
-	let clientOptions: LanguageClientOptions = {
+	const clientOptions: LanguageClientOptions = {
 		// Register the server for libconfig documents
-		documentSelector: [{ scheme: 'file', language: 'libconfig' }],
-		synchronize: {
-			// Notify the server about file changes to '.cfg and .schema files contained in the workspace
-			fileEvents
-		}
+		documentSelector: [{ scheme: 'file', language: 'libconfig' }]
 	};
 
 	// Create the language client and start the client.
@@ -60,8 +53,8 @@ export function activate(context: ExtensionContext) {
 		clientOptions
 	);
 
-	// Start the client. This will also launch the server
-	context.subscriptions.push(client.start());
+	// Start the client. This will also launch the server.
+	await client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {

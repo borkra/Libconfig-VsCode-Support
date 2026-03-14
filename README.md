@@ -18,8 +18,6 @@ This package provides:
 
 ## Extension Settings
 This extension contributes:
-- libConfigServer.maxNumberOfProblems: controls the maximum number of
-  diagnostics produced by the language server.
 - libConfigServer.trace.server: traces communication between VS Code and
   the language server (off/messages/verbose).
 
@@ -34,24 +32,31 @@ None
 
 ### Unreleased
 - Version 1.0.4 was never released; its planned changes are tracked here.
-- Missing `;` and `,` setting terminators and trailing commas
-  (lists/arrays) now raise compatibility/portability warnings instead of
-  being silently accepted or unconditionally rejected
-- Fixed parsing/validation issue: spec-variant syntax no longer produces
-  false-positive error diagnostics.
-- Fixed parsing/validation issue: signed base-prefixed numeric forms (for
-  example +0x10, -0b11) are now rejected consistently instead of being
-  misparsed.
-- Fixed extension activation/disposal lifecycle handling to avoid
-  DisposableStore disposed-state errors on reload/reinstall.
-- Added scanner support for `@include` directives.
-- Added case-insensitive boolean keyword parsing for `true`/`false`.
-- Added binary (`0b`/`0B`) and octal (`0o`/`0O`, `0q`/`0Q`) integer
-  parsing support.
-- Allow hex digits of arbitrary length.
-- Added automatic language detection for files matching sw-description*.
-- Fixed parser CPU spin scenarios by guaranteeing forward progress in
-  recovery loops.
+- Better reliability on modern VS Code versions thanks to a language
+  server stack upgrade (`vscode-languageclient`/`vscode-languageserver`
+  9.x).
+- Set compatibility to VS Code `1.82.0` and newer.
+- Internal cleanup: updated to current language server APIs and removed
+  unused or no longer required code.
+- Better compatibility guidance: missing `;`/`,` terminators and trailing
+  commas in lists/arrays now show portability warnings instead of being
+  silently accepted or always rejected.
+- Fewer false alarms: spec-variant syntax no longer triggers incorrect
+  error diagnostics.
+- Safer numeric parsing: invalid signed base-prefixed values (for example
+  `+0x10`, `-0b11`) are now consistently rejected.
+- More stable extension reload/reinstall behavior by fixing activation and
+  disposal lifecycle issues.
+- Better syntax support for `@include "path"` directives.
+- Better boolean compatibility: `true`/`false` are now parsed
+  case-insensitively.
+- Better numeric compatibility: binary (`0b`/`0B`) and octal
+  (`0o`/`0O`, `0q`/`0Q`) forms are now supported.
+- Improved numeric handling by allowing hex digits of arbitrary length.
+- Better file detection: files matching `sw-description*` are now
+  auto-detected as LibConfig.
+- Better editor responsiveness by fixing parser recovery loops that could
+  cause hang and 100% CPU utilitzation.
 
 ### 1.0.3
 - Allow capital 0X in hex code value specifier.

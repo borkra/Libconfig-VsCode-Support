@@ -3,31 +3,26 @@
 import {
 	TextDocument,
 	Diagnostic
-} from 'vscode-languageserver';
+} from 'vscode-languageserver/node';
 
 import {
 	ParseLibConfigDocument
 } from '../parser/libConfigParser';
 
 export class LibConfigValidation {
-	private promise: PromiseConstructor;
-
-	public constructor(promiseConstructor: PromiseConstructor) {
-		this.promise = promiseConstructor;
-	}
-	public doValidation(textDocument: TextDocument): Thenable<Diagnostic[]> {
-		let libConfigDocument = ParseLibConfigDocument(textDocument);
-		let diagnostics: Diagnostic[] = [];
-		let added: { [signature: string]: boolean } = {};
-		let addProblem = (problem: Diagnostic) => {
+	public doValidation(textDocument: TextDocument): Promise<Diagnostic[]> {
+		const libConfigDocument = ParseLibConfigDocument(textDocument);
+		const diagnostics: Diagnostic[] = [];
+		const added: { [signature: string]: boolean } = {};
+		const addProblem = (problem: Diagnostic) => {
 			// remove duplicated messages
-			let signature = problem.range.start.line + ' ' + problem.range.start.character + ' ' + problem.message;
+			const signature = problem.range.start.line + ' ' + problem.range.start.character + ' ' + problem.message;
 			if (!added[signature]) {
 				added[signature] = true;
 				diagnostics.push(problem);
 			}
 		};
-		let getDiagnostics = () => {
+		const getDiagnostics = () => {
 			for (const p of libConfigDocument.syntaxErrors) {
 				addProblem(p);
 			}
@@ -35,6 +30,6 @@ export class LibConfigValidation {
 			return diagnostics;
 		};
 
-		return this.promise.resolve(getDiagnostics());
+		return Promise.resolve(getDiagnostics());
 	}
 }
