@@ -1,7 +1,8 @@
 import { ScanError } from '../dataClasses/scanError';
 import { SyntaxKind } from '../dataClasses/syntaxKind';
 import { CreateDefaultScanner } from '../scanner/impl/generateScanner';
-import { TextDocument, FoldingRangeKind, FoldingRange, Position } from 'vscode-languageserver';
+import { FoldingRangeKind, FoldingRange, Position } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangesContext } from './foldingRangesContext';
 
 export function getFoldingRanges(
