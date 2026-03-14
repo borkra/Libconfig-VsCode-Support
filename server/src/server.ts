@@ -6,7 +6,11 @@
 import {
 	createConnection,
 	TextDocuments,
+	CompletionItem,
+	CompletionItemKind,
+	CompletionParams,
 	Diagnostic,
+	InsertTextFormat,
 	ProposedFeatures,
 	TextEdit,
 	Range,
@@ -44,10 +48,40 @@ connection.onInitialize(() => {
 	return {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
+			completionProvider: {
+				triggerCharacters: ['@']
+			},
 			foldingRangeProvider: true,
 			documentFormattingProvider: true
 		}
 	};
+});
+
+connection.onCompletion((params: CompletionParams) => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return completionItems;
+	}
+
+	const offset = document.offsetAt(params.position);
+	const text = document.getText();
+	const lineStart = text.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
+	const linePrefix = text.slice(lineStart, offset);
+	const trimmedPrefix = linePrefix.trim();
+
+	if (trimmedPrefix.startsWith('@')) {
+		return [includeCompletion];
+	}
+
+	if (linePrefix.includes('=')) {
+		return valueCompletions;
+	}
+
+	if (trimmedPrefix.length === 0 || /[;{}]\s*$/.test(linePrefix)) {
+		return statementCompletions;
+	}
+
+	return completionItems;
 });
 
 // The content of a text document has changed. This event is emitted
@@ -64,6 +98,76 @@ documents.onDidClose(event => {
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timeout; } = {};
 const validationDelayMs = 500;
+const booleanCompletions: CompletionItem[] = [
+	{
+		label: 'true',
+		kind: CompletionItemKind.Keyword,
+		insertText: 'true'
+	},
+	{
+		label: 'false',
+		kind: CompletionItemKind.Keyword,
+		insertText: 'false'
+	}
+];
+
+const includeCompletion: CompletionItem = {
+	label: '@include',
+	kind: CompletionItemKind.Snippet,
+	insertText: '@include "${1:path}"',
+	insertTextFormat: InsertTextFormat.Snippet,
+	detail: 'Insert include directive'
+};
+
+const valueCompletions: CompletionItem[] = [
+	...booleanCompletions,
+	{
+		label: '"string"',
+		kind: CompletionItemKind.Snippet,
+		insertText: '"${1:value}"',
+		insertTextFormat: InsertTextFormat.Snippet,
+		detail: 'String value'
+	},
+	{
+		label: '{ ... }',
+		kind: CompletionItemKind.Snippet,
+		insertText: '{\n\t$1\n}',
+		insertTextFormat: InsertTextFormat.Snippet,
+		detail: 'Group value'
+	},
+	{
+		label: '[ ... ]',
+		kind: CompletionItemKind.Snippet,
+		insertText: '[ $1 ]',
+		insertTextFormat: InsertTextFormat.Snippet,
+		detail: 'Array value'
+	}
+];
+
+const statementCompletions: CompletionItem[] = [
+	...booleanCompletions,
+	includeCompletion,
+	{
+		label: 'setting',
+		kind: CompletionItemKind.Snippet,
+		insertText: '${1:name} = ${2:value};',
+		insertTextFormat: InsertTextFormat.Snippet,
+		detail: 'Setting declaration'
+	},
+	{
+		label: 'group',
+		kind: CompletionItemKind.Snippet,
+		insertText: '${1:name} = {\n\t$2\n};',
+		insertTextFormat: InsertTextFormat.Snippet,
+		detail: 'Group declaration'
+	}
+];
+
+const completionItems: CompletionItem[] = [
+	...booleanCompletions,
+	includeCompletion,
+	...statementCompletions
+];
 
 function cleanPendingValidation(textDocument: TextDocument): void {
 	const request = pendingValidationRequests[textDocument.uri];
