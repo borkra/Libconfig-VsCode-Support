@@ -9,6 +9,7 @@ This package provides:
 - Syntax highlighting and automatic language detection for `*.cfg` and
   `sw-description*` files
 - Brace-based code folding
+- Autocomplete suggestions for common LibConfig constructs
 - Syntax error hints/diagnostics
 - `@include "path"` directive tokenization support
 - Case-insensitive boolean keyword parsing (`true`/`false`, including
@@ -57,6 +58,8 @@ None
   auto-detected as LibConfig.
 - Better editor responsiveness by fixing parser recovery loops that could
   cause hang and 100% CPU utilitzation.
+- Added context-aware autocomplete suggestions for booleans,
+  `@include` directives, value snippets, and setting/group templates.
 
 ### 1.0.3
 - Allow capital 0X in hex code value specifier.

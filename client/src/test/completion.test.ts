@@ -9,15 +9,17 @@ import { getDocUri, activate } from './helper';
 
 export async function runCompletionTest(): Promise<void> {
 	const docUri = getDocUri('completion.sample');
-	await testCompletion(docUri, new vscode.Position(0, 0), {
-		items: []
-	});
+	await testCompletion(docUri, new vscode.Position(0, 0), [
+		{ label: 'true', kind: vscode.CompletionItemKind.Keyword },
+		{ label: 'false', kind: vscode.CompletionItemKind.Keyword },
+		{ label: '@include', kind: vscode.CompletionItemKind.Snippet }
+	]);
 }
 
 async function testCompletion(
 	docUri: vscode.Uri,
 	position: vscode.Position,
-	expectedCompletionList: vscode.CompletionList
+	expectedItems: Array<Pick<vscode.CompletionItem, 'label' | 'kind'>>
 ) {
 	await activate(docUri);
 
@@ -28,10 +30,9 @@ async function testCompletion(
 		position
 	)) as vscode.CompletionList;
 
-	assert.equal(actualCompletionList.items.length, expectedCompletionList.items.length);
-	expectedCompletionList.items.forEach((expectedItem, i) => {
-		const actualItem = actualCompletionList.items[i];
-		assert.equal(actualItem.label, expectedItem.label);
-		assert.equal(actualItem.kind, expectedItem.kind);
+	expectedItems.forEach((expectedItem) => {
+		const actualItem = actualCompletionList.items.find(item => item.label === expectedItem.label);
+		assert.ok(actualItem, `Expected completion item not found: ${expectedItem.label}`);
+		assert.equal(actualItem!.kind, expectedItem.kind);
 	});
 }
