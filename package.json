@@ -65,7 +65,7 @@
         "compile": "tsc -b",
         "bundle": "node scripts/bundle.js",
         "sync:versions": "node scripts/sync-versions.js",
-        "version": "npm run sync:versions && git add client/package.json server/package.json",
+        "version": "node scripts/sync-versions.js && git add client/package.json server/package.json README.md",
         "watch": "tsc -b -w",
         "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
         "test": "sh ./scripts/e2e.sh"
