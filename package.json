@@ -68,7 +68,8 @@
         "version": "node scripts/sync-versions.js && git add client/package.json server/package.json README.md",
         "watch": "tsc -b -w",
         "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-        "test": "sh ./scripts/e2e.sh"
+        "test": "sh ./scripts/e2e.sh",
+        "install:local": "npm run compile && npm run bundle && npx @vscode/vsce package --no-yarn --out libconfig-lang.vsix && code --install-extension libconfig-lang.vsix && code-insiders --install-extension libconfig-lang.vsix"
     },
     "devDependencies": {
         "@vscode/test-electron": "^2.5.2",
