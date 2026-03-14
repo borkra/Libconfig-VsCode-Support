@@ -10,13 +10,10 @@
         "url": "https://github.com/mtayler/Libconfig-VsCode-Support"
     },
     "engines": {
-        "vscode": "^1.41.0"
+        "vscode": "^1.82.0"
     },
     "categories": [
         "Programming Languages"
-    ],
-    "activationEvents": [
-        "onLanguage:libconfig"
     ],
     "main": "./client/out/extension",
     "contributes": {
@@ -49,12 +46,6 @@
             "type": "object",
             "title": "LibConfig Configuration",
             "properties": {
-                "libConfigServer.maxNumberOfProblems": {
-                    "scope": "resource",
-                    "type": "number",
-                    "default": 100,
-                    "description": "Controls the maximum number of problems produced by the server."
-                },
                 "libConfigServer.trace.server": {
                     "scope": "window",
                     "type": "string",
