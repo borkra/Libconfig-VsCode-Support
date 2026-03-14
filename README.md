@@ -32,7 +32,6 @@ None
 ## Release Notes
 
 ### Unreleased
-- Version 1.0.4 was never released; its planned changes are tracked here.
 - Better reliability on modern VS Code versions thanks to a language
   server stack upgrade (`vscode-languageclient`/`vscode-languageserver`
   9.x).
