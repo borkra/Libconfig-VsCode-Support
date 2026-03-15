@@ -29,6 +29,7 @@
                     ".schema"
                 ],
                 "filenamePatterns": [
+                    "sw-description",
                     "sw-description*"
                 ],
                 "firstLine": "^\\s*software\\s*=\\s*\\{",
