@@ -1,6 +1,7 @@
 {
 	"editor.insertSpaces": false,
 	"files.associations": {
+		"sw-description": "libconfig",
 		"sw-description*": "libconfig"
 	},
 	"problems.exclude": {
