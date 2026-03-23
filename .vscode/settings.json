@@ -10,5 +10,8 @@
 	},
 	"tslint.enable": true,
 	"js/ts.tsc.autoDetect": "off",
-	"js/ts.preferences.quoteStyle": "single"
+	"js/ts.preferences.quoteStyle": "single",
+	"githubPullRequests.ignoredPullRequestBranches": [
+		"master"
+	]
 }

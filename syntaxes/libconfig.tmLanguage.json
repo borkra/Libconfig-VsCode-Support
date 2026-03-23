@@ -89,16 +89,25 @@
 				}
 			]
 		},
-		"declaration": {
-			"begin": "[a-zA-Z\\*][a-zA-Z0-9_\\-\\*]*",
-			"beginCaptures": {
-				"0": {
-					"name": "support.type.property-name.libconfig"
+		"property-name": {
+			"begin": "(?=[a-zA-Z\\*][a-zA-Z0-9_\\-\\*]*\\s*(?:=|:))",
+			"end": "(?=\\s*(?:=|:))",
+			"name": "meta.structure.dictionary.key.json",
+			"patterns": [
+				{
+					"match": "[a-zA-Z\\*][a-zA-Z0-9_\\-\\*]*",
+					"name": "string.json support.type.property-name.json"
 				}
-			},
+			]
+		},
+		"declaration": {
+			"begin": "(?=[a-zA-Z\\*][a-zA-Z0-9_\\-\\*]*\\s*(?:=|:))",
 			"end": "[;,]|(?=[\\}\\)\\]])|$",
 			"name": "meta.declaration.libconfig",
 			"patterns": [
+				{
+					"include": "#property-name"
+				},
 				{
 					"include": "#assignment"
 				},

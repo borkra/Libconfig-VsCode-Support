@@ -32,6 +32,35 @@ import { LibConfigValidation } from './validation/libConfigValidation';
 import {
 	FormatLibConfigDocument
 } from './format/libConfigFormat';
+import { ParseLibConfigDocument, clearParseCacheForUri } from './parser/libConfigParser';
+
+const LIBCONFIG_PARSE_DOCUMENT_REQUEST = 'libconfig/parseDocument';
+const LIBCONFIG_COMPLETION_ITEMS_REQUEST = 'libconfig/getCompletionItems';
+
+interface ParseDocumentParams {
+	uri: string;
+	text: string;
+}
+
+interface CompletionItemsParams {
+	uri: string;
+	text: string;
+	offset: number;
+}
+
+interface ParsedBaseNode {
+	type: 'object' | 'array' | 'list' | 'property' | 'string' | 'number' | 'boolean';
+	offset: number;
+	length: number;
+	value: string | boolean | number | null;
+	children?: ParsedBaseNode[];
+	name?: string;
+}
+
+interface ParseDocumentResult {
+	syntaxErrors: Diagnostic[];
+	rootSettings: ParsedBaseNode[];
+}
 
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
@@ -57,13 +86,53 @@ connection.onInitialize(() => {
 	};
 });
 
+connection.onRequest(LIBCONFIG_PARSE_DOCUMENT_REQUEST, (params: ParseDocumentParams): ParseDocumentResult => {
+	const textDocument = TextDocument.create(params.uri, 'libconfig', 0, params.text);
+	const parsed = ParseLibConfigDocument(textDocument);
+
+	return {
+		syntaxErrors: parsed.syntaxErrors,
+		rootSettings: parsed.rootSettings.map(serializeNode)
+	};
+});
+
+connection.onRequest(LIBCONFIG_COMPLETION_ITEMS_REQUEST, (params: CompletionItemsParams): CompletionItem[] => {
+	const textDocument = TextDocument.create(params.uri, 'libconfig', 0, params.text);
+	const maxOffset = params.text.length;
+	const offset = Math.max(0, Math.min(params.offset, maxOffset));
+	return computeCompletionItems(textDocument, offset);
+});
+
+function serializeNode(node: { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string }): ParsedBaseNode {
+	const serializedChildren = Array.isArray(node.children)
+		? node.children.map(child => serializeNode(child as { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string }))
+		: undefined;
+
+	const scalarValue = (typeof node.value === 'string' || typeof node.value === 'number' || typeof node.value === 'boolean')
+		? node.value
+		: null;
+
+	return {
+		type: node.type,
+		offset: node.offset,
+		length: node.length,
+		value: scalarValue,
+		children: serializedChildren,
+		name: typeof node.name === 'string' ? node.name : undefined
+	};
+}
+
 connection.onCompletion((params: CompletionParams) => {
 	const document = documents.get(params.textDocument.uri);
 	if (!document) {
-		return completionItems;
+		return statementCompletions;
 	}
 
 	const offset = document.offsetAt(params.position);
+	return computeCompletionItems(document, offset);
+});
+
+function computeCompletionItems(document: TextDocument, offset: number): CompletionItem[] {
 	const text = document.getText();
 	const lineStart = text.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
 	const linePrefix = text.slice(lineStart, offset);
@@ -81,8 +150,8 @@ connection.onCompletion((params: CompletionParams) => {
 		return statementCompletions;
 	}
 
-	return completionItems;
-});
+	return statementCompletions;
+}
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -93,11 +162,13 @@ documents.onDidChangeContent((change) => {
 // a document has closed: clear all diagnostics
 documents.onDidClose(event => {
 	cleanPendingValidation(event.document);
+	clearParseCacheForUri(event.document.uri);
 	connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 });
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timeout; } = {};
 const validationDelayMs = 500;
+const validator = new LibConfigValidation(); // Singleton instance
 const booleanCompletions: CompletionItem[] = [
 	{
 		label: 'true',
@@ -163,12 +234,6 @@ const statementCompletions: CompletionItem[] = [
 	}
 ];
 
-const completionItems: CompletionItem[] = [
-	...booleanCompletions,
-	includeCompletion,
-	...statementCompletions
-];
-
 function cleanPendingValidation(textDocument: TextDocument): void {
 	const request = pendingValidationRequests[textDocument.uri];
 	if (request) {
@@ -195,8 +260,7 @@ function validateTextDocument(textDocument: TextDocument): void {
 	}
 	const version = textDocument.version;
 
-	const validator = new LibConfigValidation();
-
+	// Use singleton validator instance
 	validator.doValidation(textDocument).then(diagnostics => {
 		setTimeout(() => {
 			const currDocument = documents.get(textDocument.uri);

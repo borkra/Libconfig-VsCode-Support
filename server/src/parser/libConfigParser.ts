@@ -14,7 +14,6 @@ import {
 	LibConfigDocument,
 	SyntaxKind,
 	ErrorCode,
-	SettingKind,
 	LibConfigPropertyNode,
 	BaseLibConfigNode,
 	NumberLibConfigNodeImpl,
@@ -26,7 +25,6 @@ import {
 	ListLibConfigNode,
 	ArrayLibConfigNode,
 	ListLibConfigNodeImpl,
-	ScalarLibConfigNodeImpl,
 	BaseLibConfigNodeImpl,
 	ScalarLibConfigNode,
 	ArrayLibConfigNodeImpl
@@ -38,13 +36,57 @@ import {
 
 const localize = nls.loadMessageBundle();
 
+type ParseCacheEntry = { version: number; text: string; result: LibConfigDocument };
+const parseCache = new Map<string, ParseCacheEntry>();
+
+const scanErrorMap: Partial<Record<ScanError, { key: string; message: string; code: ErrorCode }>> = {
+	[ScanError.InvalidUnicode]: {
+		key: 'InvalidUnicode',
+		message: 'Invalid unicode sequence in string.',
+		code: ErrorCode.InvalidUnicode
+	},
+	[ScanError.InvalidEscapeCharacter]: {
+		key: 'InvalidEscapeCharacter',
+		message: 'Invalid escape character in string.',
+		code: ErrorCode.InvalidEscapeCharacter
+	},
+	[ScanError.UnexpectedEndOfNumber]: {
+		key: 'UnexpectedEndOfNumber',
+		message: 'Unexpected end of number.',
+		code: ErrorCode.UnexpectedEndOfNumber
+	},
+	[ScanError.UnexpectedEndOfComment]: {
+		key: 'UnexpectedEndOfComment',
+		message: 'Unexpected end of comment.',
+		code: ErrorCode.UnexpectedEndOfComment
+	},
+	[ScanError.UnexpectedEndOfString]: {
+		key: 'UnexpectedEndOfString',
+		message: 'Unexpected end of string.',
+		code: ErrorCode.UnexpectedEndOfString
+	},
+	[ScanError.InvalidCharacter]: {
+		key: 'InvalidCharacter',
+		message: 'Invalid characters in string. Control characters must be escaped.',
+		code: ErrorCode.InvalidCharacter
+	}
+};
+
+export function clearParseCacheForUri(uri: string): void {
+	parseCache.delete(uri);
+}
+
 export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDocument {
+	const text = textDocument.getText();
+	const cached = parseCache.get(textDocument.uri);
+	if (cached && cached.version === textDocument.version && cached.text === text) {
+		return cached.result;
+	}
 
 	let problems: Diagnostic[] = [];
 	let lastProblemOffset: number = -1;
-	let text: string = textDocument.getText();
 	let scanner: LibConfigScanner = CreateDefaultScanner(text, false);
-	let commentRanges: Range[] = [];
+	let rootSettings: LibConfigPropertyNode[] = [];
 	let hasBufferedToken: boolean = false;
 
 	function _scanNext(): SyntaxKind {
@@ -54,9 +96,6 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			switch (token) {
 				case SyntaxKind.LineCommentTrivia:
 				case SyntaxKind.BlockCommentTrivia:
-					if (Array.isArray(commentRanges)) {
-						commentRanges.push(Range.create(textDocument.positionAt(scanner.getTokenOffset()), textDocument.positionAt(scanner.getTokenOffset() + scanner.getTokenLength())));
-					}
 					break;
 				case SyntaxKind.Trivia:
 				case SyntaxKind.LineBreakTrivia:
@@ -126,7 +165,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			parent,
 			scanner.getTokenOffset(),
 			0,
-			scanner.getTokenValue(), 
+			scanner.getTokenValue(),
 			null
 		);
 		let token = _scanNext();
@@ -176,7 +215,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					scanner.getTokenOffset(),
 					scanner.getTokenLength(),
 					scanner.getTokenValue().toLowerCase() === 'true'
-				);	
+				);
 			case SyntaxKind.StringLiteral:
 				return _parseConcatenatedString(parent);
 			default:
@@ -211,7 +250,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					scanner.getTokenOffset(),
 					scanner.getTokenLength(),
 					scanner.getTokenValue().toLowerCase() === 'true'
-				);	
+				);
 			case SyntaxKind.StringLiteral:
 				return _parseConcatenatedString(parent);
 			default:
@@ -487,26 +526,14 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 	}
 
 	function _checkScanError(): boolean {
-		switch (scanner.getTokenError()) {
-			case ScanError.InvalidUnicode:
-				_error(localize('InvalidUnicode', 'Invalid unicode sequence in string.'), ErrorCode.InvalidUnicode);
-				return true;
-			case ScanError.InvalidEscapeCharacter:
-				_error(localize('InvalidEscapeCharacter', 'Invalid escape character in string.'), ErrorCode.InvalidEscapeCharacter);
-				return true;
-			case ScanError.UnexpectedEndOfNumber:
-				_error(localize('UnexpectedEndOfNumber', 'Unexpected end of number.'), ErrorCode.UnexpectedEndOfNumber);
-				return true;
-			case ScanError.UnexpectedEndOfComment:
-				_error(localize('UnexpectedEndOfComment', 'Unexpected end of comment.'), ErrorCode.UnexpectedEndOfComment);
-				return true;
-			case ScanError.UnexpectedEndOfString:
-				_error(localize('UnexpectedEndOfString', 'Unexpected end of string.'), ErrorCode.UnexpectedEndOfString);
-				return true;
-			case ScanError.InvalidCharacter:
-				_error(localize('InvalidCharacter', 'Invalid characters in string. Control characters must be escaped.'), ErrorCode.InvalidCharacter);
-				return true;
+		const tokenError = scanner.getTokenError();
+		const errorInfo = scanErrorMap[tokenError];
+		
+		if (errorInfo) {
+			_error(localize(errorInfo.key, errorInfo.message), errorInfo.code);
+			return true;
 		}
+		
 		return false;
 	}
 
@@ -523,7 +550,10 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				_parseIncludeDirective();
 				continue;
 			}
-			_parseSetting(null);
+			const setting = _parseSetting(null);
+			if (setting) {
+				rootSettings.push(setting);
+			}
 
 			if (scanner.getPosition() === startPos) {
 				_scanNext();
@@ -532,5 +562,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 	} finally {
 		BaseLibConfigNodeImpl.clearErrorCallbacks();
 	}
-	return new LibConfigDocument(problems, commentRanges);
+	const result = new LibConfigDocument(problems, [], rootSettings);
+	parseCache.set(textDocument.uri, { version: textDocument.version, text, result });
+	return result;
 }

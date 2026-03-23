@@ -1,10 +1,9 @@
+'use strict';
+
 import { ErrorCode } from './errorCode';
 import { LibConfigDocument } from './libConfigDocument';
 import { ScanError } from './scanError';
 import { SyntaxKind } from './syntaxKind';
-import { SettingKind } from './settingKind';
-import { Range } from './range';
-import { Edit } from './edit';
 import {
 	LibConfigPropertyNode,
 	BaseLibConfigNode,
@@ -34,9 +33,6 @@ export {
 	LibConfigDocument,
 	ScanError,
 	SyntaxKind,
-	SettingKind,
-	Range,
-	Edit,
 	LibConfigPropertyNode,
 	BaseLibConfigNode,
 	LibConfigNode,

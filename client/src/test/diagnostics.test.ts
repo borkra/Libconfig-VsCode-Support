@@ -5,13 +5,26 @@
 
 import * as vscode from 'vscode'
 import * as assert from 'assert'
-import { getDocUri, activate } from './helper'
+import { activate, createTempFixtureDocUri } from './helper'
 
 export async function runDiagnosticsTest(): Promise<void> {
-  await testSyntaxDiagnostics(getDocUri('diagnostics.sample'))
-  await testCompatibilityDiagnostics(getDocUri('compatibility.sample'))
-  await testSpecVariantsDiagnostics(getDocUri('spec-variants.sample'))
-  await testSignedBaseInvalidDiagnostics(getDocUri('signed-base-invalid.sample'))
+  await testSyntaxDiagnostics(await createTempFixtureDocUri('diagnostics.cfg', [
+    { source: 'diagnostics.sample', target: 'diagnostics.cfg' }
+  ]))
+  await testCompatibilityDiagnostics(await createTempFixtureDocUri('compatibility.cfg', [
+    { source: 'compatibility.sample', target: 'compatibility.cfg' }
+  ]))
+  await testSpecVariantsDiagnostics(await createTempFixtureDocUri('spec-variants.cfg', [
+    {
+      source: 'spec-variants.sample',
+      target: 'spec-variants.cfg',
+      transform: (content) => content.replace('"compatibility.sample"', '"compatibility.cfg"')
+    },
+    { source: 'compatibility.sample', target: 'compatibility.cfg' }
+  ]))
+  await testSignedBaseInvalidDiagnostics(await createTempFixtureDocUri('signed-base-invalid.cfg', [
+    { source: 'signed-base-invalid.sample', target: 'signed-base-invalid.cfg' }
+  ]))
 }
 
 async function testSyntaxDiagnostics(docUri: vscode.Uri) {

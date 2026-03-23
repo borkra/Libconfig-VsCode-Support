@@ -254,14 +254,11 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 	}
 
 	function scanPropertyName(): string {
-		let result = text.charAt(pos - 1),
-			start = pos - 1;
-
+		const start = pos - 1;
 		while (isValidPropertyCharacter(text.charCodeAt(pos))) {
-			result += text.charAt(pos);
 			pos++;
 		}
-		return result;
+		return text.substring(start, pos);
 	}
 
 	function scanNext(): SyntaxKind {
@@ -284,20 +281,16 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 		if (isWhiteSpace(code)) {
 			do {
 				pos++;
-				value += String.fromCharCode(code);
 				code = text.charCodeAt(pos);
 			} while (isWhiteSpace(code));
-
 			return token = SyntaxKind.Trivia;
 		}
 
 		// trivia: newlines
 		if (isLineBreak(code)) {
 			pos++;
-			value += String.fromCharCode(code);
 			if (code === CharacterCodes.carriageReturn && text.charCodeAt(pos) === CharacterCodes.lineFeed) {
 				pos++;
-				value += '\n';
 			}
 			lineNumber++;
 			tokenLineStartOffset = pos;
@@ -355,7 +348,7 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				return token = SyntaxKind.StringLiteral;
 			// comments
 			case CharacterCodes.slash:
-				const start = pos - 1;
+				const start = pos;
 				// Single-line comment
 				if (text.charCodeAt(pos + 1) === CharacterCodes.slash) {
 					pos += 2;
@@ -411,7 +404,7 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				pos++;
 				return token = SyntaxKind.Unknown;
 			case CharacterCodes.hash:
-				const s2 = pos - 1;
+				const s2 = pos;
 				pos++;
 				while (pos < len) {
 					if (isLineBreak(text.charCodeAt(pos))) {

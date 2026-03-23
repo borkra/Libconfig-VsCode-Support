@@ -14,22 +14,16 @@ export class LibConfigValidation {
 		const libConfigDocument = ParseLibConfigDocument(textDocument);
 		const diagnostics: Diagnostic[] = [];
 		const added: { [signature: string]: boolean } = {};
-		const addProblem = (problem: Diagnostic) => {
-			// remove duplicated messages
-			const signature = problem.range.start.line + ' ' + problem.range.start.character + ' ' + problem.message;
+		
+		// Remove duplicated messages
+		for (const p of libConfigDocument.syntaxErrors) {
+			const signature = p.range.start.line + ' ' + p.range.start.character + ' ' + p.message;
 			if (!added[signature]) {
 				added[signature] = true;
-				diagnostics.push(problem);
+				diagnostics.push(p);
 			}
-		};
-		const getDiagnostics = () => {
-			for (const p of libConfigDocument.syntaxErrors) {
-				addProblem(p);
-			}
+		}
 
-			return diagnostics;
-		};
-
-		return Promise.resolve(getDiagnostics());
+		return Promise.resolve(diagnostics);
 	}
 }

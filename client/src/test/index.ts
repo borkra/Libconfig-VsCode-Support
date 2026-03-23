@@ -5,6 +5,8 @@
 
 import { runCompletionTest } from './completion.test';
 import { runDiagnosticsTest } from './diagnostics.test';
+import { runGrammarTest } from './grammar.test';
+import { cleanupTestArtifacts } from './helper';
 
 async function runNamedTest(name: string, fn: () => Promise<void>): Promise<void> {
 	try {
@@ -13,10 +15,13 @@ async function runNamedTest(name: string, fn: () => Promise<void>): Promise<void
 	} catch (error) {
 		console.error(`FAIL ${name}`);
 		throw error;
+	} finally {
+		await cleanupTestArtifacts();
 	}
 }
 
 export async function run(): Promise<void> {
+	await runNamedTest('grammar', runGrammarTest);
 	await runNamedTest('completion', runCompletionTest);
 	await runNamedTest('diagnostics', runDiagnosticsTest);
 }

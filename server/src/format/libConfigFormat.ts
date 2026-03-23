@@ -6,24 +6,21 @@
 
 import { FormattingOptions} from 'vscode-languageserver';
 import { CreateDefaultScanner } from '../scanner/impl/generateScanner';
-import { SyntaxKind, ScanError, Edit, Range } from '../dataClasses/index'
+import { SyntaxKind } from '../dataClasses/syntaxKind';
+import { ScanError } from '../dataClasses/scanError';
+
+/** Represents a text modification */
+interface Edit { offset: number; length: number; content: string; }
 
 
 
 
 export function FormatLibConfigDocument(documentText: string, options: FormattingOptions): Edit[] {
-	let initialIndentLevel: number;
-	let formatText: string;
-	let formatTextStart: number;
-	let rangeStart: number;
-	let rangeEnd: number;
-
-	formatText = documentText;
-	initialIndentLevel = 0;
-	formatTextStart = 0;
-	rangeStart = 0;
-	rangeEnd = documentText.length;
-	let eol = getEOL(options, documentText);
+	const initialIndentLevel = 0;
+	const formatTextStart = 0;
+	const rangeStart = 0;
+	const rangeEnd = documentText.length;
+	const eol = getEOL(options, documentText);
 
 	let lineBreak = false;
 	let indentLevel = 0;
@@ -34,7 +31,7 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 		indentValue = '\t';
 	}
 
-	let scanner = CreateDefaultScanner(formatText, false);
+	const scanner = CreateDefaultScanner(documentText, false);
 	let hasError = false;
 
 	function newLineAndIndent(): string {
@@ -82,22 +79,18 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 			secondToken = scanNext();
 		}
 
-		if (secondToken === SyntaxKind.CloseBraceToken) {
-			if (firstToken !== SyntaxKind.OpenBraceToken) {
-				indentLevel--;
-				replaceContent = newLineAndIndent();
-			}
-		} else if (secondToken === SyntaxKind.CloseBracketToken) {
-			if (firstToken !== SyntaxKind.OpenBracketToken) {
-				indentLevel--;
-				replaceContent = newLineAndIndent();
-			}
-		} else if (secondToken === SyntaxKind.CloseParenToken) {
-			if (firstToken !== SyntaxKind.OpenParenToken) {
-				indentLevel--;
-				replaceContent = newLineAndIndent();
-			}
-		} else {
+		// Handle closing tokens
+		const closingTokens = [
+			{ close: SyntaxKind.CloseBraceToken, open: SyntaxKind.OpenBraceToken },
+			{ close: SyntaxKind.CloseBracketToken, open: SyntaxKind.OpenBracketToken },
+			{ close: SyntaxKind.CloseParenToken, open: SyntaxKind.OpenParenToken }
+		];
+		
+		const closingToken = closingTokens.find(t => t.close === secondToken);
+		if (closingToken && firstToken !== closingToken.open) {
+			indentLevel--;
+			replaceContent = newLineAndIndent();
+		} else if (!closingToken) {
 			switch (firstToken) {
 				case SyntaxKind.OpenBracketToken:
 				case SyntaxKind.OpenBraceToken:
@@ -150,6 +143,7 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 			}
 
 		}
+		
 		let secondTokenStart = scanner.getTokenOffset() + formatTextStart;
 		addEdit(replaceContent, firstTokenEnd, secondTokenStart);
 		firstToken = secondToken;
@@ -158,29 +152,7 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 }
 
 function repeat(s: string, count: number): string {
-	let result = '';
-	for (let i = 0; i < count; i++) {
-		result += s;
-	}
-	return result;
-}
-
-function computeIndentLevel(content: string, options: FormattingOptions): number {
-	let i = 0;
-	let nChars = 0;
-	let tabSize = options.tabSize || 4;
-	while (i < content.length) {
-		let ch = content.charAt(i);
-		if (ch === ' ') {
-			nChars++;
-		} else if (ch === '\t') {
-			nChars += tabSize;
-		} else {
-			break;
-		}
-		i++;
-	}
-	return Math.floor(nChars / tabSize);
+	return s.repeat(count);
 }
 
 function getEOL(options: FormattingOptions, text: string): string {
@@ -198,8 +170,4 @@ function getEOL(options: FormattingOptions, text: string): string {
 	if(options && options.eol && typeof options.eol === 'string')
 		return options.eol;
 	return '\n';
-}
-
-export function isEOL(text: string, offset: number) {
-	return '\r\n'.indexOf(text.charAt(offset)) !== -1;
 }

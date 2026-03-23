@@ -61,7 +61,7 @@ export abstract class BaseLibConfigNodeImpl implements BaseLibConfigNode {
 		this.length = length;
 
 		if(callbacks)
-			callbacks.map((value)=> { BaseLibConfigNodeImpl.addErrorCallback });
+			callbacks.forEach(cb => BaseLibConfigNodeImpl.addErrorCallback(cb));
 	}
 
 	public toString(): string {
@@ -104,6 +104,7 @@ export class LibConfigPropertyNodeImpl extends BaseLibConfigNodeImpl implements 
 export class ObjectLibConfigNodeImpl extends BaseLibConfigNodeImpl implements ObjectLibConfigNode {
 	public readonly type: 'object' = 'object';
 	private _properties: LibConfigPropertyNode[] = [];
+	private readonly propertyNames = new Set<string>();
 	public readonly parent: LibConfigPropertyNode | ListLibConfigNode;
 	public value: null = null;
 	
@@ -129,9 +130,7 @@ export class ObjectLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Ob
 	 * @param children The children to be added
 	 */
 	public addChildren(children: LibConfigPropertyNode[]): void {
-		children.map((value) => {
-			this.addChild(value)
-		});
+		children.forEach(child => this.addChild(child));
 	}
 
 	/**
@@ -145,6 +144,7 @@ export class ObjectLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Ob
 		
 		if(!this.validate(child)) return;
 		this._properties.push(child);
+		this.propertyNames.add(child.name);
 	}
 
 	/**
@@ -153,17 +153,11 @@ export class ObjectLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Ob
 	 * @param child The child to validate
 	 */
 	private validate (child: LibConfigPropertyNode): boolean {
-		let invalid:boolean = false;
-		this._properties.map((value, index, array) => {
-			if(value.name === child.name){
-				let offset = child.offset;
-				let length = child.length;
-				BaseLibConfigNodeImpl.Error(`Duplicate properties with name '${value.name}' found!`, offset, length)
-				invalid = true;
-			}
-		});
-
-		return !invalid;
+		if (this.propertyNames.has(child.name)) {
+			BaseLibConfigNodeImpl.Error(`Duplicate properties with name '${child.name}' found!`, child.offset, child.length);
+			return false;
+		}
+		return true;
 	}
 	
 	/**
@@ -202,35 +196,16 @@ export class ListLibConfigNodeImpl extends BaseLibConfigNodeImpl implements List
 	 * @param children The children to be added
 	 */
 	public addChildren(children: BaseLibConfigNode[]): void {
-		children.map((value) => {
-			this.addChild(value)
-		});
+		children.forEach(child => this.addChild(child));
 	}
 
 	/**
-	 * Tries to add child to @_children array
-	 * 
-	 * @Error callbacks are executed if @child does not pass @validate
-	 * 
 	 * @param child Child to add to the @_children array
 	 */
 	public addChild (child: BaseLibConfigNode): void {
-		
-		if(!this.validate(child)) return;
 		this._children.push(child);
 	}
 
-	/**
-	 * Verifies that the child can be added to @_children
-	 * 
-	 * @param child The child to validate
-	 */
-	private validate (child: BaseLibConfigNode): boolean {
-		let invalid:boolean = false;
-
-		return !invalid;
-	}
-	
 	/**
 	 * Public getter to obtain properties from @_children
 	 */
@@ -266,9 +241,7 @@ export class ArrayLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Arr
 	 * @param children The children to be added
 	 */
 	public addChildren(children: ScalarLibConfigNode[]): void {
-		children.map((value) => {
-			this.addChild(value)
-		});
+		children.forEach(child => this.addChild(child));
 	}
 
 	/**
@@ -365,18 +338,6 @@ export class StringLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements 
 		);
 
 		this.value = value;
-		this.validate(value);
-	}
-
-	/**
-	 * Verifies that the child can be added to @_children
-	 * 
-	 * @param child The child to validate
-	 */
-	private validate (value: string): boolean {
-		let invalid:boolean = false;
-
-		return !invalid;
 	}
 }
 
@@ -385,7 +346,7 @@ export class NumberLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements 
 	public value: number;
 
 	public get isInteger():boolean {
-		return this.value.toFixed(0) === this.value.toString();
+		return Number.isInteger(this.value);
 	}
 	
 	constructor(
@@ -402,18 +363,6 @@ export class NumberLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements 
 		);
 
 		this.value = value;
-		this.validate(value);
-	}
-
-	/**
-	 * Verifies that the child can be added to @_children
-	 * 
-	 * @param child The child to validate
-	 */
-	private validate (value: number): boolean {
-		let invalid:boolean = false;
-
-		return !invalid;
 	}
 }
 
@@ -435,17 +384,5 @@ export class BooleanLibConfigNodeImpl extends ScalarLibConfigNodeImpl implements
 		);
 
 		this.value = value;
-		this.validate(value);
-	}
-
-	/**
-	 * Verifies that the child can be added to @_children
-	 * 
-	 * @param child The child to validate
-	 */
-	private validate (value: boolean): boolean {
-		let invalid:boolean = false;
-
-		return !invalid;
 	}
 }

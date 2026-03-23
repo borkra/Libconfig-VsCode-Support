@@ -1,6 +1,6 @@
-import { ScanError } from '../dataClasses/scanError';
-import { SyntaxKind } from '../dataClasses/syntaxKind';
 import { CreateDefaultScanner } from '../scanner/impl/generateScanner';
+import { SyntaxKind } from '../dataClasses/syntaxKind';
+import { ScanError } from '../dataClasses/scanError';
 import { FoldingRangeKind, FoldingRange, Position } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangesContext } from './foldingRangesContext';
@@ -13,7 +13,6 @@ export function getFoldingRanges(
 	let stack: FoldingRange[] = [];
 	let prevStart = -1;
 	let scanner = CreateDefaultScanner(document.getText(), false);
-	let t = document.getText();
 	let token = scanner.scan();
 
 	function addRange(range: FoldingRange) {
