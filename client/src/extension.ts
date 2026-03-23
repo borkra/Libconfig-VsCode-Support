@@ -13,11 +13,59 @@ import {
 	TransportKind
 } from 'vscode-languageclient/node';
 
-let client: LanguageClient;
+const LIBCONFIG_PARSE_DOCUMENT_REQUEST = 'libconfig/parseDocument';
+const LIBCONFIG_COMPLETION_ITEMS_REQUEST = 'libconfig/getCompletionItems';
 
-export async function activate(context: ExtensionContext) {
+export interface ParsedLibconfigNode {
+	type: 'object' | 'array' | 'list' | 'property' | 'string' | 'number' | 'boolean';
+	offset: number;
+	length: number;
+	value: string | boolean | number | null;
+	children?: ParsedLibconfigNode[];
+	name?: string;
+}
+
+export interface SerializedPosition {
+	line?: number;
+	character?: number;
+}
+
+export interface SerializedRange {
+	start?: SerializedPosition;
+	end?: SerializedPosition;
+}
+
+export interface SerializedDiagnostic {
+	range?: SerializedRange;
+	message?: string;
+	severity?: number;
+	source?: string;
+}
+
+export interface LibconfigCompletionEntry {
+	label: string;
+	kind?: number;
+	insertText?: string;
+	detail?: string;
+	documentation?: string;
+}
+
+export interface ParsedLibconfigDocument {
+	syntaxErrors: SerializedDiagnostic[];
+	rootSettings: ParsedLibconfigNode[];
+}
+
+export interface LibconfigExtensionApi {
+	apiVersion: 1;
+	getParsedDocument(uri: string, text: string): Promise<ParsedLibconfigDocument>;
+	getCompletionItems(uri: string, text: string, offset: number): Promise<LibconfigCompletionEntry[]>;
+}
+
+let client: LanguageClient | undefined;
+
+export async function activate(context: ExtensionContext): Promise<LibconfigExtensionApi | undefined> {
 	if (client) {
-		return;
+		return createExtensionApi(client);
 	}
 
 	// The server is implemented in node
@@ -55,6 +103,7 @@ export async function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server.
 	await client.start();
+	return createExtensionApi(client);
 }
 
 export function deactivate(): Thenable<void> | undefined {
@@ -62,6 +111,18 @@ export function deactivate(): Thenable<void> | undefined {
 		return undefined;
 	}
 	const activeClient = client;
-	client = undefined as any;
+	client = undefined;
 	return activeClient.stop();
+}
+
+function createExtensionApi(languageClient: LanguageClient): LibconfigExtensionApi {
+	return {
+		apiVersion: 1,
+		getParsedDocument: (uri: string, text: string): Promise<ParsedLibconfigDocument> => {
+			return languageClient.sendRequest(LIBCONFIG_PARSE_DOCUMENT_REQUEST, { uri, text });
+		},
+		getCompletionItems: (uri: string, text: string, offset: number): Promise<LibconfigCompletionEntry[]> => {
+			return languageClient.sendRequest(LIBCONFIG_COMPLETION_ITEMS_REQUEST, { uri, text, offset });
+		}
+	};
 }

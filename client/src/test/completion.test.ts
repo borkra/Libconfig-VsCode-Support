@@ -5,10 +5,12 @@
 
 import * as vscode from 'vscode';
 import * as assert from 'assert';
-import { getDocUri, activate } from './helper';
+import { activate, createTempFixtureDocUri } from './helper';
 
 export async function runCompletionTest(): Promise<void> {
-	const docUri = getDocUri('completion.sample');
+	const docUri = await createTempFixtureDocUri('completion.cfg', [
+		{ source: 'completion.sample', target: 'completion.cfg' }
+	]);
 	await testCompletion(docUri, new vscode.Position(0, 0), [
 		{ label: 'true', kind: vscode.CompletionItemKind.Keyword },
 		{ label: 'false', kind: vscode.CompletionItemKind.Keyword },

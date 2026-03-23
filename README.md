@@ -17,6 +17,10 @@ This package provides:
 - Binary, octal, and hex integer parsing support (`0b`/`0B`, `0o`/`0O`,
   `0q`/`0Q`, and `0x`/`0X`)
 
+## Parser API (For Other Extensions)
+Parser API documentation is available in:
+- [docs/PARSER_API.md](docs/PARSER_API.md)
+
 ## Extension Settings
 This extension contributes:
 - libConfigServer.trace.server: traces communication between VS Code and
@@ -32,6 +36,8 @@ None
 ## Release Notes
 
 ### Unreleased
+- Documented the public parser provider API for extension-to-extension
+  integration (`getParsedDocument`, API versioning, and consumer example).
 - Better reliability on modern VS Code versions thanks to a language
   server stack upgrade (`vscode-languageclient`/`vscode-languageserver`
   9.x).
