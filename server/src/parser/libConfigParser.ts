@@ -39,6 +39,7 @@ const localize = nls.loadMessageBundle();
 const HEX_NUMBER_RE = /^0[xX][0-9a-fA-F]+$/;
 const BIN_NUMBER_RE = /^0[bB][01]+$/;
 const OCT_NUMBER_RE = /^0[oOqQ][0-7]+$/;
+const WHITESPACE_CHAR_RE = /\s/;
 
 type ParseCacheEntry = { version: number; text: string; result: LibConfigDocument };
 const parseCache = new Map<string, ParseCacheEntry>();
@@ -530,7 +531,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		let end = scanner.getTokenOffset() + scanner.getTokenLength();
 		if (start === end && start > 0) {
 			start--;
-			while (start > 0 && /\s/.test(text.charAt(start))) {
+			while (start > 0 && WHITESPACE_CHAR_RE.test(text.charAt(start))) {
 				start--;
 			}
 			end = start + 1;

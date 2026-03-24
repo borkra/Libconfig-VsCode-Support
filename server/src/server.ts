@@ -36,6 +36,7 @@ import { ParseLibConfigDocument, clearParseCacheForUri } from './parser/libConfi
 
 const LIBCONFIG_PARSE_DOCUMENT_REQUEST = 'libconfig/parseDocument';
 const LIBCONFIG_COMPLETION_ITEMS_REQUEST = 'libconfig/getCompletionItems';
+const TRAILING_STATEMENT_SEPARATOR_REGEX = /[;{}]\s*$/;
 
 interface ParseDocumentParams {
 	uri: string;
@@ -162,7 +163,7 @@ function computeCompletionItemsForText(text: string, offset: number): Completion
 		return valueCompletions;
 	}
 
-	if (trimmedPrefix.length === 0 || /[;{}]\s*$/.test(linePrefix)) {
+	if (trimmedPrefix.length === 0 || TRAILING_STATEMENT_SEPARATOR_REGEX.test(linePrefix)) {
 		return statementCompletions;
 	}
 
