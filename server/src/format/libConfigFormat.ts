@@ -50,6 +50,12 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 		hasError = token === SyntaxKind.Unknown || scanner.getTokenError() !== ScanError.None;
 		return token;
 	}
+	const closingTokens = [
+		{ close: SyntaxKind.CloseBraceToken, open: SyntaxKind.OpenBraceToken },
+		{ close: SyntaxKind.CloseBracketToken, open: SyntaxKind.OpenBracketToken },
+		{ close: SyntaxKind.CloseParenToken, open: SyntaxKind.OpenParenToken }
+	];
+
 	let editOperations: Edit[] = [];
 	function addEdit(text: string, startOffset: number, endOffset: number) {
 		if (!hasError && startOffset < rangeEnd && endOffset > rangeStart && documentText.substring(startOffset, endOffset) !== text) {
@@ -79,13 +85,6 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 			secondToken = scanNext();
 		}
 
-		// Handle closing tokens
-		const closingTokens = [
-			{ close: SyntaxKind.CloseBraceToken, open: SyntaxKind.OpenBraceToken },
-			{ close: SyntaxKind.CloseBracketToken, open: SyntaxKind.OpenBracketToken },
-			{ close: SyntaxKind.CloseParenToken, open: SyntaxKind.OpenParenToken }
-		];
-		
 		const closingToken = closingTokens.find(t => t.close === secondToken);
 		if (closingToken && firstToken !== closingToken.open) {
 			indentLevel--;
@@ -101,7 +100,7 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 				case SyntaxKind.CommaToken:
 				case SyntaxKind.LineCommentTrivia:
 				case SyntaxKind.SemicolonToken:
-						case SyntaxKind.ColonToken:
+				case SyntaxKind.ColonToken:
 					replaceContent = newLineAndIndent();
 					break;
 				case SyntaxKind.BlockCommentTrivia:

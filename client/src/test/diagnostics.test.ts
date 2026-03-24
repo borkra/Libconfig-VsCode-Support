@@ -74,15 +74,53 @@ async function testSignedBaseInvalidDiagnostics(docUri: vscode.Uri) {
 }
 
 async function waitForDiagnostics(docUri: vscode.Uri): Promise<vscode.Diagnostic[]> {
-  const timeoutAt = Date.now() + 5000
-
-  while (Date.now() < timeoutAt) {
-    const diagnostics = vscode.languages.getDiagnostics(docUri)
-    if (diagnostics.length > 0) {
-      return diagnostics
-    }
-    await new Promise(resolve => setTimeout(resolve, 100))
+  const currentDiagnostics = vscode.languages.getDiagnostics(docUri)
+  if (currentDiagnostics.length > 0) {
+    return currentDiagnostics
   }
 
-  return vscode.languages.getDiagnostics(docUri)
+  const docUriKey = docUri.toString()
+  const settleDelayMs = 250
+
+  return await new Promise((resolve) => {
+    let settleTimeout: NodeJS.Timeout | undefined
+
+    const finish = (diagnostics: vscode.Diagnostic[]) => {
+      if (settleTimeout) {
+        clearTimeout(settleTimeout)
+      }
+      clearTimeout(timeout)
+      disposable.dispose()
+      resolve(diagnostics)
+    }
+
+    const scheduleSettle = () => {
+      if (settleTimeout) {
+        clearTimeout(settleTimeout)
+      }
+      settleTimeout = setTimeout(() => {
+        finish(vscode.languages.getDiagnostics(docUri))
+      }, settleDelayMs)
+    }
+
+    const timeout = setTimeout(() => {
+      finish(vscode.languages.getDiagnostics(docUri))
+    }, 5000)
+
+    const disposable = vscode.languages.onDidChangeDiagnostics((event) => {
+      if (!event.uris.some((uri) => uri.toString() === docUriKey)) {
+        return
+      }
+
+      const diagnostics = vscode.languages.getDiagnostics(docUri)
+      if (diagnostics.length > 0) {
+        finish(diagnostics)
+        return
+      }
+
+      scheduleSettle()
+    })
+
+    scheduleSettle()
+  })
 }

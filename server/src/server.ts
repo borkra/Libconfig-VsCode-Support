@@ -62,12 +62,11 @@ interface ParseDocumentResult {
 	rootSettings: ParsedBaseNode[];
 }
 
+type RawNode = { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string };
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
-
-connection.console.log('SERVER STARTED');
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
@@ -97,13 +96,12 @@ connection.onRequest(LIBCONFIG_PARSE_DOCUMENT_REQUEST, (params: ParseDocumentPar
 });
 
 connection.onRequest(LIBCONFIG_COMPLETION_ITEMS_REQUEST, (params: CompletionItemsParams): CompletionItem[] => {
-	const textDocument = TextDocument.create(params.uri, 'libconfig', 0, params.text);
 	const maxOffset = params.text.length;
 	const offset = Math.max(0, Math.min(params.offset, maxOffset));
-	return computeCompletionItems(textDocument, offset);
+	return computeCompletionItemsForText(params.text, offset);
 });
 
-function serializeNode(node: { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string }): ParsedBaseNode {
+function serializeNode(node: RawNode): ParsedBaseNode {
 	// For property nodes, the value field contains the actual value node (object/array/list/scalar)
 	// For container nodes (object/array/list), children contains child nodes
 	// We need to handle both cases
@@ -114,7 +112,7 @@ function serializeNode(node: { type: ParsedBaseNode['type']; offset: number; len
 	if (node.type === 'property') {
 		// For property nodes, serialize the value field as a child if it exists
 		if (node.value && typeof node.value === 'object' && 'type' in node.value) {
-			serializedChildren = [serializeNode(node.value as { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string })];
+			serializedChildren = [serializeNode(node.value as RawNode)];
 		} else if (typeof node.value === 'string' || typeof node.value === 'number' || typeof node.value === 'boolean') {
 			// Property value is a scalar (shouldn't happen with current parser structure, but handle it)
 			scalarValue = node.value;
@@ -122,7 +120,7 @@ function serializeNode(node: { type: ParsedBaseNode['type']; offset: number; len
 	} else {
 		// For non-property nodes, serialize children array
 		serializedChildren = Array.isArray(node.children)
-			? node.children.map(child => serializeNode(child as { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string }))
+			? node.children.map(child => serializeNode(child as RawNode))
 			: undefined;
 		
 		// Extract scalar value for scalar nodes
@@ -148,11 +146,10 @@ connection.onCompletion((params: CompletionParams) => {
 	}
 
 	const offset = document.offsetAt(params.position);
-	return computeCompletionItems(document, offset);
+	return computeCompletionItemsForText(document.getText(), offset);
 });
 
-function computeCompletionItems(document: TextDocument, offset: number): CompletionItem[] {
-	const text = document.getText();
+function computeCompletionItemsForText(text: string, offset: number): CompletionItem[] {
 	const lineStart = text.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
 	const linePrefix = text.slice(lineStart, offset);
 	const trimmedPrefix = linePrefix.trim();
@@ -185,7 +182,7 @@ documents.onDidClose(event => {
 	connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 });
 
-const pendingValidationRequests: { [uri: string]: NodeJS.Timeout; } = {};
+const pendingValidationRequests = new Map<string, NodeJS.Timeout>();
 const validationDelayMs = 500;
 const validator = new LibConfigValidation(); // Singleton instance
 const booleanCompletions: CompletionItem[] = [
@@ -254,19 +251,19 @@ const statementCompletions: CompletionItem[] = [
 ];
 
 function cleanPendingValidation(textDocument: TextDocument): void {
-	const request = pendingValidationRequests[textDocument.uri];
+	const request = pendingValidationRequests.get(textDocument.uri);
 	if (request) {
 		clearTimeout(request);
-		delete pendingValidationRequests[textDocument.uri];
+		pendingValidationRequests.delete(textDocument.uri);
 	}
 }
 
 function triggerValidation(textDocument: TextDocument): void {
 	cleanPendingValidation(textDocument);
-	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
-		delete pendingValidationRequests[textDocument.uri];
+	pendingValidationRequests.set(textDocument.uri, setTimeout(() => {
+		pendingValidationRequests.delete(textDocument.uri);
 		validateTextDocument(textDocument);
-	}, validationDelayMs);
+	}, validationDelayMs));
 }
 
 function validateTextDocument(textDocument: TextDocument): void {
@@ -279,17 +276,14 @@ function validateTextDocument(textDocument: TextDocument): void {
 	}
 	const version = textDocument.version;
 
-	// Use singleton validator instance
-	validator.doValidation(textDocument).then(diagnostics => {
-		setTimeout(() => {
-			const currDocument = documents.get(textDocument.uri);
-			if (currDocument && currDocument.version === version) {
-				respond(diagnostics); // Send the computed diagnostics to VSCode.
-			}
-		}, 100);
-	}, error => {
-		connection.console.error(formatError(`Error while validating ${textDocument.uri}`, error));
-	});
+	const currDocument = documents.get(textDocument.uri);
+	if (currDocument && currDocument.version === version) {
+		try {
+			respond(validator.doValidation(textDocument));
+		} catch (error) {
+			connection.console.error(formatError(`Error while validating ${textDocument.uri}`, error));
+		}
+	}
 }
 
 connection.onFoldingRanges((params, token) => {

@@ -10,14 +10,9 @@ import * as path from 'path';
 
 export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
-export let documentEol: string;
-export let platformEol: string;
 
 const tempFixtureDirs = new Set<string>();
 
-/**
- * Activates the vscode.lsp-sample extension
- */
 export async function activate(docUri: vscode.Uri) {
 	const extensionIds = [
 		'boris-krasnovskiy.libconfig-lang',
@@ -25,14 +20,14 @@ export async function activate(docUri: vscode.Uri) {
 		'tmulligan.libconfig-lang'
 	];
 
-	const ext = extensionIds
+	const extInstance = extensionIds
 		.map((id) => vscode.extensions.getExtension(id))
-		.find((candidate) => !!candidate);
+		.find(Boolean);
 
-	if (!ext) {
+	if (!extInstance) {
 		throw new Error('LibConfig extension is not installed for tests.');
 	}
-	await ext.activate();
+	await extInstance.activate();
 	try {
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc, { preview: true });
@@ -53,8 +48,10 @@ export const getDocUri = (p: string) => {
 	return vscode.Uri.file(getDocPath(p));
 };
 
-type TempFixtureSpec = {
-	source: string;
+type TempFixtureSpec = (
+	| { source: string; content?: never }
+	| { content: string; source?: never }
+) & {
 	target: string;
 	transform?: (content: string) => string;
 };
@@ -66,13 +63,14 @@ export async function createTempFixtureDocUri(
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'libconfig-test-'));
 	tempFixtureDirs.add(tempDir);
 
-	for (const fixture of fixtures) {
-		const sourcePath = getDocPath(fixture.source);
-		const sourceContent = await fs.readFile(sourcePath, 'utf8');
+	await Promise.all(fixtures.map(async (fixture) => {
 		const targetPath = path.join(tempDir, fixture.target);
+		const sourceContent = fixture.source
+			? await fs.readFile(getDocPath(fixture.source), 'utf8')
+			: (fixture.content ?? '');
 		const targetContent = fixture.transform ? fixture.transform(sourceContent) : sourceContent;
 		await fs.writeFile(targetPath, targetContent, 'utf8');
-	}
+	}));
 
 	return vscode.Uri.file(path.join(tempDir, entryTarget));
 }
@@ -80,9 +78,9 @@ export async function createTempFixtureDocUri(
 export async function cleanupTestArtifacts(): Promise<void> {
 	await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 
-	for (const tempDir of tempFixtureDirs) {
-		await fs.rm(tempDir, { recursive: true, force: true });
-	}
+	await Promise.all([...tempFixtureDirs].map((tempDir) =>
+		fs.rm(tempDir, { recursive: true, force: true })
+	));
 
 	tempFixtureDirs.clear();
 }
