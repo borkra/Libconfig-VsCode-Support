@@ -16,10 +16,6 @@ import {
 
 const LIBCONFIG_PARSE_DOCUMENT_REQUEST = 'libconfig/parseDocument';
 const LIBCONFIG_COMPLETION_ITEMS_REQUEST = 'libconfig/getCompletionItems';
-const CONFLICTING_EXTENSION_IDS = [
-	'tmulligan.libconfig-lang',
-	'wegman12.cfg-language-features'
-] as const;
 
 export interface ParsedLibconfigNode {
 	type: 'object' | 'array' | 'list' | 'property' | 'string' | 'number' | 'boolean';
@@ -73,7 +69,10 @@ export async function activate(context: ExtensionContext): Promise<LibconfigExte
 		return createExtensionApi(client);
 	}
 
-	const conflictingExtensionIds = CONFLICTING_EXTENSION_IDS.filter((id) => !!vscode.extensions.getExtension(id));
+	const configuredConflictingExtensionIds = Array.isArray(context.extension.packageJSON?.conflictingExtensionIds)
+		? context.extension.packageJSON.conflictingExtensionIds.filter((value: unknown): value is string => typeof value === 'string')
+		: [];
+	const conflictingExtensionIds = configuredConflictingExtensionIds.filter((id: string) => !!vscode.extensions.getExtension(id));
 	if (conflictingExtensionIds.length > 0) {
 		vscode.window.showErrorMessage(
 			`borkra.libconfig-lang conflicts with installed LibConfig variants: ${conflictingExtensionIds.join(', ')}. Uninstall the conflicting variant before using this extension.`
