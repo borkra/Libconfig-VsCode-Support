@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 LibConfig VS Code Support contributors
 'use strict';
 
 export enum SyntaxKind {
