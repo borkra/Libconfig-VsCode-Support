@@ -70,9 +70,7 @@
         "watch": "tsc -b -w",
         "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
         "test": "sh ./scripts/e2e.sh",
-        "install:local": "npm run package:local && node scripts/smart-reinstall.js",
-        "reinstall:local": "npm run package:local && node scripts/smart-reinstall.js",
-        "reinstall:smart": "npm run package:local && node scripts/smart-reinstall.js"
+        "install:local": "npm run package:local && node scripts/smart-reinstall.js"
     },
     "devDependencies": {
         "@vscode/test-electron": "^2.5.2",
