@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 LibConfig VS Code Support contributors
 /**
  * Error codes used by diagnostics
  */

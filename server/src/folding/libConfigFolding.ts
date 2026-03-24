@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 LibConfig VS Code Support contributors
 import { CreateDefaultScanner } from '../scanner/impl/generateScanner';
 import { SyntaxKind } from '../dataClasses/syntaxKind';
 import { ScanError } from '../dataClasses/scanError';
