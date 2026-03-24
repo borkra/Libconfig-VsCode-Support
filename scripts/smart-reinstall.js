@@ -3,12 +3,9 @@
 
 const { execSync } = require('child_process');
 const path = require('path');
+const { conflictingExtensionIds: CONFLICTING_EXTENSION_IDS = [] } = require('../package.json');
 
 const EXTENSION_ID = 'borkra.libconfig-lang';
-const CONFLICTING_EXTENSION_IDS = [
-	'tmulligan.libconfig-lang',
-	'wegman12.cfg-language-features'
-];
 const VSIX_FILE = path.resolve(__dirname, '..', 'libconfig-lang.vsix');
 
 /**
