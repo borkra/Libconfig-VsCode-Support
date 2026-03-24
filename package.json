@@ -1,7 +1,7 @@
 {
     "name": "libconfig-lang",
     "displayName": "LibConfig",
-    "description": "LibConfig Syntax Highlighting (Fork)",
+    "description": "LibConfig language support for VS Code",
     "version": "1.0.4",
     "icon": "media/icon.png",
     "publisher": "borkra",
@@ -66,8 +66,8 @@
         "watch": "tsc -b -w",
         "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
         "test": "sh ./scripts/e2e.sh",
-        "install:local": "npm run package:local && code --install-extension libconfig-lang.vsix --force && code-insiders --install-extension libconfig-lang.vsix --force",
-        "reinstall:local": "npm run package:local && (code --uninstall-extension borkra.libconfig-lang || true) && (code-insiders --uninstall-extension borkra.libconfig-lang || true) && code --install-extension libconfig-lang.vsix --force && code-insiders --install-extension libconfig-lang.vsix --force",
+        "install:local": "npm run package:local && (code --uninstall-extension tmulligan.libconfig-lang || true) && (code --uninstall-extension wegman12.cfg-language-features || true) && code --install-extension libconfig-lang.vsix --force && (code-insiders --uninstall-extension tmulligan.libconfig-lang || true) && (code-insiders --uninstall-extension wegman12.cfg-language-features || true) && code-insiders --install-extension libconfig-lang.vsix --force",
+        "reinstall:local": "npm run package:local && (code --uninstall-extension borkra.libconfig-lang || true) && (code --uninstall-extension tmulligan.libconfig-lang || true) && (code --uninstall-extension wegman12.cfg-language-features || true) && (code-insiders --uninstall-extension borkra.libconfig-lang || true) && (code-insiders --uninstall-extension tmulligan.libconfig-lang || true) && (code-insiders --uninstall-extension wegman12.cfg-language-features || true) && code --install-extension libconfig-lang.vsix --force && code-insiders --install-extension libconfig-lang.vsix --force",
         "reinstall:smart": "npm run package:local && node scripts/smart-reinstall.js"
     },
     "devDependencies": {

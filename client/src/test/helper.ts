@@ -12,20 +12,13 @@ export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
 
 const tempFixtureDirs = new Set<string>();
+const EXTENSION_ID = 'borkra.libconfig-lang';
 
 export async function activate(docUri: vscode.Uri) {
-	const extensionIds = [
-		'boris-krasnovskiy.libconfig-lang',
-		'borkra.libconfig-lang',
-		'tmulligan.libconfig-lang'
-	];
-
-	const extInstance = extensionIds
-		.map((id) => vscode.extensions.getExtension(id))
-		.find(Boolean);
+	const extInstance = vscode.extensions.getExtension(EXTENSION_ID);
 
 	if (!extInstance) {
-		throw new Error('LibConfig extension is not installed for tests.');
+		throw new Error(`LibConfig extension ${EXTENSION_ID} is not installed for tests.`);
 	}
 	await extInstance.activate();
 	try {
