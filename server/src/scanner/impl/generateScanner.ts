@@ -75,6 +75,12 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					pos++;
 					if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
 				}
+				// Check for invalid suffix
+				if (pos < text.length && isLetter(text.charCodeAt(pos))) {
+					pos++;
+					while (pos < text.length && isAlphaNumeric(text.charCodeAt(pos))) { pos++; }
+					scanError = ScanError.InvalidCharacter;
+				}
 				return text.substring(start, pos);
 			}
 			if (nextCh === CharacterCodes.b || nextCh === CharacterCodes.B) {
@@ -86,6 +92,12 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
 					pos++;
 					if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
+				}
+				// Check for invalid suffix
+				if (pos < text.length && isLetter(text.charCodeAt(pos))) {
+					pos++;
+					while (pos < text.length && isAlphaNumeric(text.charCodeAt(pos))) { pos++; }
+					scanError = ScanError.InvalidCharacter;
 				}
 				return text.substring(start, pos);
 			}
@@ -99,6 +111,12 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
 					pos++;
 					if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
+				}
+				// Check for invalid suffix
+				if (pos < text.length && isLetter(text.charCodeAt(pos))) {
+					pos++;
+					while (pos < text.length && isAlphaNumeric(text.charCodeAt(pos))) { pos++; }
+					scanError = ScanError.InvalidCharacter;
 				}
 				return text.substring(start, pos);
 			}
@@ -163,6 +181,16 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				pos++;
 				if (pos < text.length && text.charCodeAt(pos) === CharacterCodes.L) { pos++; }
 				end = pos;
+			}
+			// Check for invalid suffix (any other letter immediately following)
+			if (pos < text.length && isLetter(text.charCodeAt(pos))) {
+				// Invalid number suffix - consume it so the error points to the right place
+				pos++;
+				while (pos < text.length && isAlphaNumeric(text.charCodeAt(pos))) {
+					pos++;
+				}
+				scanError = ScanError.InvalidCharacter;
+				return text.substring(start, pos);
 			}
 		}
 		return text.substring(start, end);
@@ -612,6 +640,11 @@ function isHexDigit(ch: number): boolean {
 function isAlphaNumeric(ch: number): boolean {
 	return (ch >= CharacterCodes._0 && ch <= CharacterCodes._9) ||
 		(ch >= CharacterCodes.A && ch <= CharacterCodes.Z) ||
+		(ch >= CharacterCodes.a && ch <= CharacterCodes.z);
+}
+
+function isLetter(ch: number): boolean {
+	return (ch >= CharacterCodes.A && ch <= CharacterCodes.Z) ||
 		(ch >= CharacterCodes.a && ch <= CharacterCodes.z);
 }
 

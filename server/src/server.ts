@@ -104,13 +104,32 @@ connection.onRequest(LIBCONFIG_COMPLETION_ITEMS_REQUEST, (params: CompletionItem
 });
 
 function serializeNode(node: { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string }): ParsedBaseNode {
-	const serializedChildren = Array.isArray(node.children)
-		? node.children.map(child => serializeNode(child as { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string }))
-		: undefined;
-
-	const scalarValue = (typeof node.value === 'string' || typeof node.value === 'number' || typeof node.value === 'boolean')
-		? node.value
-		: null;
+	// For property nodes, the value field contains the actual value node (object/array/list/scalar)
+	// For container nodes (object/array/list), children contains child nodes
+	// We need to handle both cases
+	
+	let serializedChildren: ParsedBaseNode[] | undefined;
+	let scalarValue: string | number | boolean | null = null;
+	
+	if (node.type === 'property') {
+		// For property nodes, serialize the value field as a child if it exists
+		if (node.value && typeof node.value === 'object' && 'type' in node.value) {
+			serializedChildren = [serializeNode(node.value as { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string })];
+		} else if (typeof node.value === 'string' || typeof node.value === 'number' || typeof node.value === 'boolean') {
+			// Property value is a scalar (shouldn't happen with current parser structure, but handle it)
+			scalarValue = node.value;
+		}
+	} else {
+		// For non-property nodes, serialize children array
+		serializedChildren = Array.isArray(node.children)
+			? node.children.map(child => serializeNode(child as { type: ParsedBaseNode['type']; offset: number; length: number; value: unknown; children?: unknown[]; name?: string }))
+			: undefined;
+		
+		// Extract scalar value for scalar nodes
+		if (typeof node.value === 'string' || typeof node.value === 'number' || typeof node.value === 'boolean') {
+			scalarValue = node.value;
+		}
+	}
 
 	return {
 		type: node.type,

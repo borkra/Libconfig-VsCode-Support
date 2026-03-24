@@ -67,7 +67,7 @@ const scanErrorMap: Partial<Record<ScanError, { key: string; message: string; co
 	},
 	[ScanError.InvalidCharacter]: {
 		key: 'InvalidCharacter',
-		message: 'Invalid characters in string. Control characters must be escaped.',
+		message: 'Invalid number format. Base prefixes (0x, 0b, 0o/0q) must come after 0. Valid suffixes are L or LL.',
 		code: ErrorCode.InvalidCharacter
 	}
 };
@@ -219,12 +219,23 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			case SyntaxKind.StringLiteral:
 				return _parseConcatenatedString(parent);
 			default:
-				_error(
-					localize('UnrecognizedType', 'Expected setting type kind value'),
-					ErrorCode.ValueExpected,
-					[],
-					[SyntaxKind.SemicolonToken]
-				);
+				// Check if it looks like a malformed boolean
+				const tokenValue = scanner.getTokenValue().toLowerCase();
+				if (tokenValue.startsWith('tru') || tokenValue.startsWith('fal')) {
+					_error(
+						localize('InvalidBoolean', `Invalid boolean value '${scanner.getTokenValue()}'. Use 'true' or 'false'.`),
+						ErrorCode.ValueExpected,
+						[],
+						[SyntaxKind.SemicolonToken]
+					);
+				} else {
+					_error(
+						localize('UnrecognizedType', 'Expected a value (number, boolean, string, array, list, or group)'),
+						ErrorCode.ValueExpected,
+						[],
+						[SyntaxKind.SemicolonToken]
+					);
+				}
 				return null;
 		}
 	}
@@ -254,12 +265,23 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			case SyntaxKind.StringLiteral:
 				return _parseConcatenatedString(parent);
 			default:
-				_error(
-					localize('UnrecognizedType', 'Expected setting type kind value'),
-					ErrorCode.ValueExpected,
-					[],
-					[SyntaxKind.SemicolonToken]
-				);
+				// Check if it looks like a malformed boolean
+				const tokenValue = scanner.getTokenValue().toLowerCase();
+				if (tokenValue.startsWith('tru') || tokenValue.startsWith('fal')) {
+					_error(
+						localize('InvalidBoolean', `Invalid boolean value '${scanner.getTokenValue()}'. Use 'true' or 'false'.`),
+						ErrorCode.ValueExpected,
+						[],
+						[SyntaxKind.SemicolonToken]
+					);
+				} else {
+					_error(
+						localize('UnrecognizedScalarType', 'Expected a scalar value (number, boolean, or string)'),
+						ErrorCode.ValueExpected,
+						[],
+						[SyntaxKind.SemicolonToken]
+					);
+				}
 				return;
 		}
 	}
