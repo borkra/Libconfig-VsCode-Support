@@ -8,11 +8,12 @@ import { FoldingRangesContext } from './foldingRangesContext';
 export function getFoldingRanges(
 	document: TextDocument, 
 	context?: FoldingRangesContext): FoldingRange[] {
+	const docText = document.getText();
 	let ranges: FoldingRange[] = [];
 	let nestingLevels: number[] = [];
 	let stack: FoldingRange[] = [];
 	let prevStart = -1;
-	let scanner = CreateDefaultScanner(document.getText(), false);
+	let scanner = CreateDefaultScanner(docText, false);
 	let token = scanner.scan();
 
 	function addRange(range: FoldingRange) {
@@ -73,7 +74,7 @@ export function getFoldingRanges(
 			}
 
 			case SyntaxKind.LineCommentTrivia: {
-				let text = document.getText().substr(scanner.getTokenOffset(), scanner.getTokenLength());
+				let text = docText.substr(scanner.getTokenOffset(), scanner.getTokenLength());
 				let m = text.match(/^\/\/\s*#(region\b)|(endregion\b)/);
 				if (m) {
 					let line = document.positionAt(scanner.getTokenOffset()).line;

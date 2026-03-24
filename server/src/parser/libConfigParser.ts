@@ -36,6 +36,10 @@ import {
 
 const localize = nls.loadMessageBundle();
 
+const HEX_NUMBER_RE = /^0[xX][0-9a-fA-F]+$/;
+const BIN_NUMBER_RE = /^0[bB][01]+$/;
+const OCT_NUMBER_RE = /^0[oOqQ][0-7]+$/;
+
 type ParseCacheEntry = { version: number; text: string; result: LibConfigDocument };
 const parseCache = new Map<string, ParseCacheEntry>();
 
@@ -298,15 +302,15 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 
 		literal = literal.replace(/L{1,2}$/i, '');
 
-		if (/^0[xX][0-9a-fA-F]+$/.test(literal)) {
+		if (HEX_NUMBER_RE.test(literal)) {
 			return sign * parseInt(literal.substring(2), 16);
 		}
 
-		if (/^0[bB][01]+$/.test(literal)) {
+		if (BIN_NUMBER_RE.test(literal)) {
 			return sign * parseInt(literal.substring(2), 2);
 		}
 
-		if (/^0[oOqQ][0-7]+$/.test(literal)) {
+		if (OCT_NUMBER_RE.test(literal)) {
 			return sign * parseInt(literal.substring(2), 8);
 		}
 
@@ -536,10 +540,10 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		if (skipUntilAfter.length + skipUntil.length > 0) {
 			let token = scanner.getToken();
 			while (token !== SyntaxKind.EOF) {
-				if (skipUntilAfter.indexOf(token) !== -1) {
+				if (skipUntilAfter.includes(token)) {
 					_scanNext();
 					break;
-				} else if (skipUntil.indexOf(token) !== -1) {
+				} else if (skipUntil.includes(token)) {
 					break;
 				}
 				token = _scanNext();

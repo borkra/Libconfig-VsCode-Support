@@ -10,20 +10,19 @@ import {
 } from '../parser/libConfigParser';
 
 export class LibConfigValidation {
-	public doValidation(textDocument: TextDocument): Promise<Diagnostic[]> {
+	public doValidation(textDocument: TextDocument): Diagnostic[] {
 		const libConfigDocument = ParseLibConfigDocument(textDocument);
+		const seen = new Set<string>();
 		const diagnostics: Diagnostic[] = [];
-		const added: { [signature: string]: boolean } = {};
-		
-		// Remove duplicated messages
+
 		for (const p of libConfigDocument.syntaxErrors) {
-			const signature = p.range.start.line + ' ' + p.range.start.character + ' ' + p.message;
-			if (!added[signature]) {
-				added[signature] = true;
+			const signature = `${p.range.start.line} ${p.range.start.character} ${p.message}`;
+			if (!seen.has(signature)) {
+				seen.add(signature);
 				diagnostics.push(p);
 			}
 		}
 
-		return Promise.resolve(diagnostics);
+		return diagnostics;
 	}
 }
