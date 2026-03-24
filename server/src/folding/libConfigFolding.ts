@@ -5,6 +5,9 @@ import { FoldingRangeKind, FoldingRange, Position } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangesContext } from './foldingRangesContext';
 
+const REGION_START_COMMENT_REGEX = /^\/\/\s*#region\b/;
+const REGION_END_COMMENT_REGEX = /^\/\/\s*#endregion\b/;
+
 export function getFoldingRanges(
 	document: TextDocument, 
 	context?: FoldingRangesContext): FoldingRange[] {
@@ -75,10 +78,9 @@ export function getFoldingRanges(
 
 			case SyntaxKind.LineCommentTrivia: {
 				let text = docText.substr(scanner.getTokenOffset(), scanner.getTokenLength());
-				let m = text.match(/^\/\/\s*#(region\b)|(endregion\b)/);
-				if (m) {
+				if (REGION_START_COMMENT_REGEX.test(text) || REGION_END_COMMENT_REGEX.test(text)) {
 					let line = document.positionAt(scanner.getTokenOffset()).line;
-					if (m[1]) { // start pattern match
+					if (REGION_START_COMMENT_REGEX.test(text)) {
 						let range = { startLine: line, endLine: line, kind: FoldingRangeKind.Region };
 						stack.push(range);
 					} else {
