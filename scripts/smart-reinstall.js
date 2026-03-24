@@ -5,6 +5,10 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 const EXTENSION_ID = 'borkra.libconfig-lang';
+const CONFLICTING_EXTENSION_IDS = [
+	'tmulligan.libconfig-lang',
+	'wegman12.cfg-language-features'
+];
 const VSIX_FILE = path.resolve(__dirname, '..', 'libconfig-lang.vsix');
 
 /**
@@ -128,6 +132,9 @@ function smartReinstall(codeCommand, extensionId, vsixPath) {
 	const isInstalled = installed.some(ext => ext.id === extensionId);
 	
 	if (!isInstalled) {
+		for (const conflictingId of CONFLICTING_EXTENSION_IDS) {
+			uninstallExtension(codeCommand, conflictingId);
+		}
 		console.log(`  ℹ Extension not installed, installing...`);
 		installExtension(codeCommand, vsixPath);
 		return;
@@ -149,6 +156,10 @@ function smartReinstall(codeCommand, extensionId, vsixPath) {
 		});
 	} else {
 		console.log(`  ✓ No dependent extensions found`);
+	}
+
+	for (const conflictingId of CONFLICTING_EXTENSION_IDS) {
+		uninstallExtension(codeCommand, conflictingId);
 	}
 	
 	// Uninstall main extension
