@@ -4,6 +4,12 @@
     "description": "LibConfig language support for VS Code",
     "version": "1.0.4",
     "icon": "media/icon.png",
+    "license": "MIT",
+    "keywords": [
+        "libconfig",
+        "config",
+        "configuration"
+    ],
     "publisher": "borkra",
     "conflictingExtensionIds": [
         "tmulligan.libconfig-lang",
