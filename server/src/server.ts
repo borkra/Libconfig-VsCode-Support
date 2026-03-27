@@ -8,20 +8,17 @@ import {
 	TextDocuments,
 	CompletionItem,
 	CompletionItemKind,
+	CancellationToken,
 	CompletionParams,
 	Diagnostic,
 	InsertTextFormat,
 	ProposedFeatures,
+	ResponseError,
 	TextEdit,
 	Range,
 	TextDocumentSyncKind
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-
-import { 
-	formatError, 
-	runSafe 
-} from './utils/runner';
 
 import {
 	getFoldingRanges
@@ -250,6 +247,45 @@ const statementCompletions: CompletionItem[] = [
 		detail: 'Group declaration'
 	}
 ];
+
+function formatError(message: string, err: any): string {
+	if (err instanceof Error) {
+		let error = <Error>err;
+		return `${message}: ${error.message}\n${error.stack}`;
+	} else if (typeof err === 'string') {
+		return `${message}: ${err}`;
+	} else if (err) {
+		return `${message}: ${err.toString()}`;
+	}
+	return message;
+}
+
+function runSafe<T, E>(func: () => T, errorVal: T, errorMessage: string, token: CancellationToken): Thenable<T | ResponseError<E>> {
+	return new Promise<T | ResponseError<E>>((resolve) => {
+		setImmediate(() => {
+			if (token.isCancellationRequested) {
+				resolve(cancelValue());
+			} else {
+				try {
+					let result = func();
+					if (token.isCancellationRequested) {
+						resolve(cancelValue());
+						return;
+					} else {
+						resolve(result);
+					}
+				} catch (e) {
+					console.error(formatError(errorMessage, e));
+					resolve(errorVal);
+				}
+			}
+		});
+	});
+}
+
+function cancelValue<E>() {
+	return new ResponseError<E>(-32800, 'Request cancelled');
+}
 
 function cleanPendingValidation(textDocument: TextDocument): void {
 	const request = pendingValidationRequests.get(textDocument.uri);
