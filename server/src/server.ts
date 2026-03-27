@@ -246,16 +246,9 @@ const statementCompletions: CompletionItem[] = [
 	}
 ];
 
-function formatError(message: string, err: any): string {
-	if (err instanceof Error) {
-		let error = <Error>err;
-		return `${message}: ${error.message}\n${error.stack}`;
-	} else if (typeof err === 'string') {
-		return `${message}: ${err}`;
-	} else if (err) {
-		return `${message}: ${err.toString()}`;
-	}
-	return message;
+function formatError(message: string, err: unknown): string {
+	const detail = err instanceof Error ? err.stack ?? err.message : String(err);
+	return err != null ? `${message}: ${detail}` : message;
 }
 
 function cleanPendingValidation(textDocument: TextDocument): void {
