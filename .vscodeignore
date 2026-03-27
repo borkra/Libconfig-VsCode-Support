@@ -8,7 +8,7 @@ client/package-lock.json
 server/package-lock.json
 .vscode-ctags
 vsc-extension-quickstart.md
-scripts/e2e.*
+scripts/
 test/**
 client/src/**
 client/test/**
@@ -22,3 +22,13 @@ tsconfig.json
 client/tsconfig.json
 server/tsconfig.json
 tslint.json
+**/*.tsbuildinfo
+server/package.json
+client/package.json
+docs/
+
+# Individual tsc-compiled modules (redundant with the esbuild bundle)
+server/out/**
+!server/out/server.js
+client/out/**
+!client/out/extension.js

@@ -1,8 +1,8 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "nodenext",
 		"target": "es6",
-		"moduleResolution": "node",
+		"moduleResolution": "nodenext",
 		"skipLibCheck": true,
 		"outDir": "out",
 		"rootDir": "src",
