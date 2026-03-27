@@ -1,0 +1,3 @@
+truncatedExponent = 1e;
+truncatedExponentSigned = 2e+;
+invalidSuffix = 3abc;

@@ -46,7 +46,7 @@ const WHITESPACE_CHAR_RE = /\s/;
 type ParseCacheEntry = { version: number; text: string; result: LibConfigDocument };
 const parseCache = new Map<string, ParseCacheEntry>();
 
-const scanErrorMap: Partial<Record<ScanError, { key: string; message: string; code: ErrorCode }>> = {
+const scanErrorMap: Partial<Record<ScanError, { key: string; message: string; code: ErrorCode; severity?: DiagnosticSeverity }>> = {
 	[ScanError.InvalidUnicode]: {
 		key: 'InvalidUnicode',
 		message: 'Invalid unicode sequence in string.',
@@ -54,8 +54,9 @@ const scanErrorMap: Partial<Record<ScanError, { key: string; message: string; co
 	},
 	[ScanError.InvalidEscapeCharacter]: {
 		key: 'InvalidEscapeCharacter',
-		message: 'Invalid escape character in string.',
-		code: ErrorCode.InvalidEscapeCharacter
+		message: 'Unsupported escape sequence. Only \\\\, \\n, \\r, \\t, \\f, \\a, \\b, \\v, \\" and \\xNN are defined.',
+		code: ErrorCode.InvalidEscapeCharacter,
+		severity: DiagnosticSeverity.Warning
 	},
 	[ScanError.UnexpectedEndOfNumber]: {
 		key: 'UnexpectedEndOfNumber',
@@ -79,6 +80,8 @@ const scanErrorMap: Partial<Record<ScanError, { key: string; message: string; co
 	}
 };
 
+const SIGNED_BASE_NUMBER_RE = /^[+-]0[xXbBoO]/;
+
 export function clearParseCacheForUri(uri: string): void {
 	parseCache.delete(uri);
 }
@@ -94,6 +97,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 	let lastProblemOffset: number = -1;
 	let scanner: LibConfigScanner = CreateDefaultScanner(text, false);
 	let rootSettings: LibConfigPropertyNode[] = [];
+	let rootPropertyNames = new Set<string>();
 	let hasBufferedToken: boolean = false;
 
 	function _scanNext(): SyntaxKind {
@@ -225,12 +229,19 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				);
 			case SyntaxKind.StringLiteral:
 				return _parseConcatenatedString(parent);
-			default:
+			default: {
 				// Check if it looks like a malformed boolean
 				const tokenValue = scanner.getTokenValue().toLowerCase();
 				if (tokenValue.startsWith('tru') || tokenValue.startsWith('fal')) {
 					_error(
 						localize('InvalidBoolean', `Invalid boolean value '${scanner.getTokenValue()}'. Use 'true' or 'false'.`),
+						ErrorCode.ValueExpected,
+						[],
+						[SyntaxKind.SemicolonToken]
+					);
+				} else if (SIGNED_BASE_NUMBER_RE.test(tokenValue)) {
+					_error(
+						localize('SignedBaseNumber', 'Sign prefix is not valid for hexadecimal, binary, or octal literals'),
 						ErrorCode.ValueExpected,
 						[],
 						[SyntaxKind.SemicolonToken]
@@ -244,6 +255,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 					);
 				}
 				return null;
+			}
 		}
 	}
 
@@ -271,7 +283,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				);
 			case SyntaxKind.StringLiteral:
 				return _parseConcatenatedString(parent);
-			default:
+			default: {
 				// Check if it looks like a malformed boolean
 				const tokenValue = scanner.getTokenValue().toLowerCase();
 				if (tokenValue.startsWith('tru') || tokenValue.startsWith('fal')) {
@@ -279,17 +291,25 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 						localize('InvalidBoolean', `Invalid boolean value '${scanner.getTokenValue()}'. Use 'true' or 'false'.`),
 						ErrorCode.ValueExpected,
 						[],
-						[SyntaxKind.SemicolonToken]
+						[]
+					);
+				} else if (SIGNED_BASE_NUMBER_RE.test(tokenValue)) {
+					_error(
+						localize('SignedBaseNumber', 'Sign prefix is not valid for hexadecimal, binary, or octal literals'),
+						ErrorCode.ValueExpected,
+						[],
+						[]
 					);
 				} else {
 					_error(
 						localize('UnrecognizedScalarType', 'Expected a scalar value (number, boolean, or string)'),
 						ErrorCode.ValueExpected,
 						[],
-						[SyntaxKind.SemicolonToken]
+						[]
 					);
 				}
 				return;
+			}
 		}
 	}
 	function _parseNumericLiteral(raw: string): number {
@@ -559,7 +579,13 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		const errorInfo = scanErrorMap[tokenError];
 		
 		if (errorInfo) {
-			_error(localize(errorInfo.key, errorInfo.message), errorInfo.code);
+			if (errorInfo.severity !== undefined) {
+				const start = scanner.getTokenOffset();
+				const end = start + scanner.getTokenLength();
+				_errorAtRange(localize(errorInfo.key, errorInfo.message), errorInfo.code, start, end, errorInfo.severity);
+			} else {
+				_error(localize(errorInfo.key, errorInfo.message), errorInfo.code);
+			}
 			return true;
 		}
 		
@@ -581,6 +607,16 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			}
 			const setting = _parseSetting(null);
 			if (setting) {
+				if (rootPropertyNames.has(setting.name)) {
+					_errorAtRange(
+						`Duplicate properties with name '${setting.name}' found!`,
+						ErrorCode.DuplicateKey,
+						setting.offset,
+						setting.offset + setting.length
+					);
+				} else {
+					rootPropertyNames.add(setting.name);
+				}
 				rootSettings.push(setting);
 			}
 

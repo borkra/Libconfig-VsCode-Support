@@ -1,0 +1,7 @@
+rootDup = 1;
+rootDup = 2;
+groupWithDup = {
+  dupProp = 1;
+  dupProp = 2;
+};
+mixedArr = [1, "two"];

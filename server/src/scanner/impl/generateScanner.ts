@@ -257,12 +257,14 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 						if (ch3 >= 0) {
 							result += String.fromCharCode(ch3);
 						} else {
-							// Preserve unsupported escape literally for compatibility with libconfig scanner behavior
+							scanError = ScanError.InvalidEscapeCharacter;
 							result += '\\' + String.fromCharCode(ch2);
 						}
 						break;
 					default:
-						// Preserve unsupported escapes literally (e.g. \u, \/)
+						// Preserve literally but flag as unsupported — spec grammar allows \.
+						// but the escape has no defined semantics
+						scanError = ScanError.InvalidEscapeCharacter;
 						result += '\\' + String.fromCharCode(ch2);
 				}
 				start = pos;
