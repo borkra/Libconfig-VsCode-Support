@@ -22,7 +22,7 @@ import {
 	getFoldingRanges
 } from './folding/libConfigFolding';
 
-import { LibConfigValidation } from './validation/libConfigValidation';
+import { doValidation } from './validation/libConfigValidation';
 
 import {
 	FormatLibConfigDocument
@@ -162,7 +162,7 @@ function computeCompletionItemsForText(text: string, offset: number): Completion
 		return statementCompletions;
 	}
 
-	return statementCompletions;
+	return valueCompletions;
 }
 
 // The content of a text document has changed. This event is emitted
@@ -180,7 +180,6 @@ documents.onDidClose(event => {
 
 const pendingValidationRequests = new Map<string, NodeJS.Timeout>();
 const validationDelayMs = 500;
-const validator = new LibConfigValidation(); // Singleton instance
 const booleanCompletions: CompletionItem[] = [
 	{
 		label: 'true',
@@ -280,7 +279,7 @@ function validateTextDocument(textDocument: TextDocument): void {
 	const currDocument = documents.get(textDocument.uri);
 	if (currDocument && currDocument.version === version) {
 		try {
-			respond(validator.doValidation(textDocument));
+			respond(doValidation(textDocument));
 		} catch (error) {
 			connection.console.error(formatError(`Error while validating ${textDocument.uri}`, error));
 		}

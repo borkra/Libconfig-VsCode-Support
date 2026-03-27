@@ -1,0 +1,4 @@
+badValue = @bad;
+badArrayValue = [abc];
+badEscapeStr = "unsupported \q escape";
+badHexEscapeStr = "bad hex \xZZ end";

@@ -1,3 +1,4 @@
 badSignedHex = -0x10;
 badSignedBin = +0b101;
 badSignedOct = -0o17;
+badSignedArray = [-0x10, +0b101, -0o17];
