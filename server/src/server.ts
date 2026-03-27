@@ -8,12 +8,10 @@ import {
 	TextDocuments,
 	CompletionItem,
 	CompletionItemKind,
-	CancellationToken,
 	CompletionParams,
 	Diagnostic,
 	InsertTextFormat,
 	ProposedFeatures,
-	ResponseError,
 	TextEdit,
 	Range,
 	TextDocumentSyncKind
@@ -260,33 +258,6 @@ function formatError(message: string, err: any): string {
 	return message;
 }
 
-function runSafe<T, E>(func: () => T, errorVal: T, errorMessage: string, token: CancellationToken): Thenable<T | ResponseError<E>> {
-	return new Promise<T | ResponseError<E>>((resolve) => {
-		setImmediate(() => {
-			if (token.isCancellationRequested) {
-				resolve(cancelValue());
-			} else {
-				try {
-					let result = func();
-					if (token.isCancellationRequested) {
-						resolve(cancelValue());
-						return;
-					} else {
-						resolve(result);
-					}
-				} catch (e) {
-					console.error(formatError(errorMessage, e));
-					resolve(errorVal);
-				}
-			}
-		});
-	});
-}
-
-function cancelValue<E>() {
-	return new ResponseError<E>(-32800, 'Request cancelled');
-}
-
 function cleanPendingValidation(textDocument: TextDocument): void {
 	const request = pendingValidationRequests.get(textDocument.uri);
 	if (request) {
@@ -323,26 +294,32 @@ function validateTextDocument(textDocument: TextDocument): void {
 	}
 }
 
-connection.onFoldingRanges((params, token) => {
-	return runSafe(() => {
+connection.onFoldingRanges((params) => {
+	try {
 		const document = documents.get(params.textDocument.uri);
 		if (document) {
 			return getFoldingRanges(document);
 		}
 		return null;
-	}, null, `Error while computing folding ranges for ${params.textDocument.uri}`, token);
+	} catch (e) {
+		connection.console.error(formatError(`Error while computing folding ranges for ${params.textDocument.uri}`, e));
+		return null;
+	}
 });
 
-connection.onDocumentFormatting((formatParams, token) =>{
-	return runSafe(() => {
+connection.onDocumentFormatting((formatParams) => {
+	try {
 		const document = documents.get(formatParams.textDocument.uri);
 		if (document) {
-			return FormatLibConfigDocument(document.getText(),formatParams.options).map(e => {
+			return FormatLibConfigDocument(document.getText(), formatParams.options).map(e => {
 				return TextEdit.replace(Range.create(document.positionAt(e.offset), document.positionAt(e.offset + e.length)), e.content);
 			});
 		}
 		return [];
-	}, [], `Error while formatting for ${formatParams.textDocument.uri}`, token);
+	} catch (e) {
+		connection.console.error(formatError(`Error while formatting for ${formatParams.textDocument.uri}`, e));
+		return [];
+	}
 });
 
 
