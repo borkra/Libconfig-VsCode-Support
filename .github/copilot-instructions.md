@@ -6,7 +6,7 @@ A VS Code language extension providing full language support for LibConfig `.cfg
 It supplies syntax highlighting, semantic validation, folding, formatting, and completions via an LSP server.
 
 It also acts as a **dependency and parser API provider** for downstream extensions — notably
-`borkra.swupdate-lang` (sibling project at `/devel/Swupdate-VSCode-Support`). Downstream extensions
+`borkra.swupdate-lang` (sibling project at `../Swupdate-VSCode-Support`). Downstream extensions
 call into this extension via the exported API to parse libconfig documents and receive completions.
 
 ---
@@ -47,23 +47,25 @@ Libconfig-VsCode-Support/
 
 ---
 
-## NPM Scripts (all run from `/devel/Libconfig-VsCode-Support`)
+## NPM Scripts (all run from the workspace root)
 
-| Script | Command | Purpose |
-|---|---|---|
-| `compile` | `npm run compile` | TypeScript build (`tsc -b`) |
-| `watch` | `npm run watch` | Incremental watch mode |
-| `test` | `npm test` | E2E test suite |
-| `package:local` | `npm run package:local` | Compile + bundle + produce `libconfig-lang.vsix` |
-| `install:local` | `npm run install:local` | `package:local` then installs into code + code-insiders |
-| `clean` | `npm run clean` | Remove all build artifacts and `.vsix` |
-| `clean:full` | `npm run clean:full` | `clean` + remove all `node_modules` |
-| `update:version` | `npm run update:version` | Bump version in all package.json files |
+| Script | Command | VS Code Task | Purpose |
+|---|---|---|---|
+| `compile` | `npm run compile` | `compile` | TypeScript build (`tsc -b`) |
+| `watch` | `npm run watch` | `watch` | Incremental watch mode |
+| `test` | `npm test` | `test` | E2E test suite |
+| `bundle` | `npm run bundle` | `bundle` | esbuild bundle for client + server |
+| `package:local` | `npm run package:local` | `package:local` | Compile + bundle + produce `libconfig-lang.vsix` |
+| `install:local` | `npm run install:local` | `install:local` | `package:local` then installs into code + code-insiders |
+| `clean` | `npm run clean` | `clean` | Remove all build artifacts and `.vsix` |
+| `clean:full` | `npm run clean:full` | `clean:full` | `clean` + remove all `node_modules` |
+| `update:version` | `npm run update:version` | `update:version` | Bump version in all package.json files |
 
 ### Building and installing locally
 
+Use the VS Code **`install:local`** task, or run:
+
 ```bash
-cd /devel/Libconfig-VsCode-Support
 npm run install:local
 # Produces libconfig-lang.vsix and installs into VS Code stable + Insiders
 # Reload the VS Code window after installation to activate the new version
@@ -75,7 +77,6 @@ Because `borkra.swupdate-lang` declares `borkra.libconfig-lang` as a dependency,
 refuse to uninstall libconfig if swupdate is also installed. Use the smart reinstaller:
 
 ```bash
-cd /devel/Libconfig-VsCode-Support
 node scripts/smart-reinstall.js
 # Detects dependent extensions, uninstalls them first, reinstalls libconfig,
 # then reports which dependents were removed so you can reinstall them manually.
@@ -83,16 +84,19 @@ node scripts/smart-reinstall.js
 
 ### Building as a dependency for the swupdate extension tests
 
-The swupdate test runner needs a `.vsix` of this extension. Build it here first:
+The swupdate test runner needs a `.vsix` of this extension. Build it here first using `npm run package:local`,
+then run swupdate tests from the `../Swupdate-VSCode-Support` workspace:
 
 ```bash
-cd /devel/Libconfig-VsCode-Support
-npm run compile && npm run bundle && npx @vscode/vsce package --no-yarn --out libconfig-lang.vsix
+# From this workspace — build the vsix:
+npm run package:local
 
-# Then run swupdate tests with:
-cd /devel/Swupdate-VSCode-Support
-LIBCONFIG_VSIX_PATH=/devel/Libconfig-VsCode-Support/libconfig-lang.vsix npm test
+# From the Swupdate-VSCode-Support workspace — run tests:
+LIBCONFIG_VSIX_PATH=../Libconfig-VsCode-Support/libconfig-lang.vsix npm test
 ```
+
+Alternatively, use the VS Code **`test`** task in the Swupdate-VSCode-Support workspace, which has
+`LIBCONFIG_VSIX_PATH` pre-configured (points to `../Libconfig-VsCode-Support/libconfig-lang.vsix`).
 
 ---
 
