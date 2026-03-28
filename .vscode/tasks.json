@@ -3,8 +3,8 @@
 	"tasks": [
 		{
 			"label": "compile",
-			"type": "shell",
-			"command": "npm run compile",
+			"type": "npm",
+			"script": "compile",
 			"group": "build",
 			"presentation": {
 				"panel": "dedicated",
@@ -16,8 +16,8 @@
 		},
 		{
 			"label": "watch",
-			"type": "shell",
-			"command": "npm run watch",
+			"type": "npm",
+			"script": "watch",
 			"isBackground": true,
 			"group": {
 				"kind": "build",
@@ -30,6 +30,73 @@
 			"problemMatcher": [
 				"$tsc-watch"
 			]
+		},
+		{
+			"label": "test",
+			"type": "npm",
+			"script": "test",
+			"group": "test",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "install:local",
+			"type": "npm",
+			"script": "install:local",
+			"group": "build",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "bundle",
+			"type": "npm",
+			"script": "bundle",
+			"group": "build",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "package:local",
+			"type": "npm",
+			"script": "package:local",
+			"group": "build",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "clean",
+			"type": "npm",
+			"script": "clean",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "clean:full",
+			"type": "npm",
+			"script": "clean:full",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "update:version",
+			"type": "npm",
+			"script": "update:version",
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
 		}
 	]
 }
