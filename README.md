@@ -36,7 +36,12 @@ None
 ## Release Notes
 
 ### Unreleased
+- No changes yet.
+
+### 1.1.0
 - Documented the public parser provider API for extension-to-extension
+
+
   integration (`getParsedDocument`, API versioning, and consumer example).
 - Better reliability on modern VS Code versions thanks to a language
   server stack upgrade (`vscode-languageclient`/`vscode-languageserver`
