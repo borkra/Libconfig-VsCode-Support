@@ -1,7 +1,7 @@
 {
 	"name": "libconfig-lang-server",
 	"description": "Language server for the LibConfig VS Code extension.",
-	"version": "1.1.0",
+	"version": "1.0.4",
 	"author": "borkra",
 	"license": "MIT",
 	"private": true,
