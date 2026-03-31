@@ -10,9 +10,6 @@ on:
   pull_request_target:
     types:
       - labeled
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: write
@@ -32,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
@@ -74,20 +71,23 @@ jobs:
         id: release
         run: |
           version="${{ steps.resolve-version.outputs.version }}"
-          npm version "$version" -m "chore(release): v%s"
+          npm version "$version" --no-git-tag-version
+          npm run update:version
+          git add package.json package-lock.json client/package.json client/package-lock.json server/package.json server/package-lock.json
+          git commit -m "chore(release): v$version"
+          git tag "v$version"
           git push origin HEAD:master --follow-tags
           echo "release_tag=v$version" >> "$GITHUB_OUTPUT"
 
   publish-vsix:
     needs: [prepare-release]
-    if: ${{ github.event_name == 'push' || needs.prepare-release.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event_name == 'push' && github.ref_name || needs.prepare-release.outputs.release_tag }}
+          ref: ${{ needs.prepare-release.outputs.release_tag }}
 
       - name: Install dependencies
         run: npm install
@@ -101,6 +101,6 @@ jobs:
       - name: Publish GitHub release with VSIX
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'push' && github.ref_name || needs.prepare-release.outputs.release_tag }}
+          tag_name: ${{ needs.prepare-release.outputs.release_tag }}
           files: libconfig-lang.vsix
           generate_release_notes: true
