@@ -1,7 +1,7 @@
 # Change Log
 
 ## Unreleased
-- No changes yet.
+- Updated documentation per VSCode marketplace requirements
 
 ## 1.1.0
 - Documented the public parser provider API for extension-to-extension
