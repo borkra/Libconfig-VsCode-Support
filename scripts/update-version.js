@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const rootDir = path.resolve(__dirname, '..');
-const readmePath = path.join(rootDir, 'README.md');
+const packageDirs = ['', 'client', 'server'];
 
 function readJson(filePath) {
 	return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -15,25 +15,35 @@ function writeJson(filePath, value) {
 	fs.writeFileSync(filePath, `${JSON.stringify(value, null, '\t')}\n`, 'utf8');
 }
 
-function readFile(filePath) {
-	return fs.readFileSync(filePath, 'utf8');
+function isSemver(version) {
+	return /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(version);
 }
 
-function writeFile(filePath, content) {
-	fs.writeFileSync(filePath, content, 'utf8');
+function resolveTargetVersion() {
+	const positional = process.argv.slice(2).find((arg) => !arg.startsWith('--'));
+	if (positional) {
+		return positional;
+	}
+
+	const rootPkgPath = path.join(rootDir, 'package.json');
+	const rootPkg = readJson(rootPkgPath);
+	return rootPkg.version;
 }
 
-function syncPackageVersion(packagePath, version) {
+function syncPackageVersion(packagePath, version, dryRun) {
 	const pkg = readJson(packagePath);
 	pkg.version = version;
-	writeJson(packagePath, pkg);
+	if (!dryRun) {
+		writeJson(packagePath, pkg);
+	}
 	return pkg;
 }
 
-function syncLockfile(lockfilePath, packageName, version) {
+function syncLockfileVersion(lockfilePath, packageName, version, dryRun) {
 	if (!fs.existsSync(lockfilePath)) {
 		return;
 	}
+
 	const lock = readJson(lockfilePath);
 	lock.name = packageName;
 	lock.version = version;
@@ -41,20 +51,24 @@ function syncLockfile(lockfilePath, packageName, version) {
 		lock.packages[''].name = packageName;
 		lock.packages[''].version = version;
 	}
-	writeJson(lockfilePath, lock);
+	if (!dryRun) {
+		writeJson(lockfilePath, lock);
+	}
 }
 
 function finalizeReleaseNotes(version, dryRun) {
-	let readme = readFile(readmePath);
-	const versionHeading = `### ${version}`;
-	if (readme.includes(`${versionHeading}\n`)) {
-		console.log(`Release notes already contain ${versionHeading}; skipping.`);
+	const changelogPath = path.join(rootDir, 'CHANGELOG.md');
+	let changelog = fs.readFileSync(changelogPath, 'utf8');
+	const versionHeading = `## ${version}`;
+
+	if (changelog.includes(`${versionHeading}\n`)) {
+		console.log(`CHANGELOG already contains ${versionHeading}; skipping.`);
 		return;
 	}
 
-	const unreleasedBlock = /^### Unreleased\s*\n([\s\S]*?)(?=^###\s|$)/m.exec(readme);
+	const unreleasedBlock = /## Unreleased\n([\s\S]*?)(?=\n## |$)/.exec(changelog);
 	if (!unreleasedBlock) {
-		throw new Error('Could not find "### Unreleased" section in README.md.');
+		throw new Error('Could not find "## Unreleased" section in CHANGELOG.md.');
 	}
 
 	const body = unreleasedBlock[1].trimEnd();
@@ -63,45 +77,37 @@ function finalizeReleaseNotes(version, dryRun) {
 		return;
 	}
 
-	const replacement = `### Unreleased\n- No changes yet.\n\n${versionHeading}\n${body}\n\n`;
-	readme = readme.replace(/^### Unreleased\s*\n([\s\S]*?)(?=^###\s|$)/m, replacement);
-
 	if (dryRun) {
-		console.log(`Would finalize README release notes for ${version}.`);
+		console.log(`Would finalize CHANGELOG release notes for ${version}.`);
 		return;
 	}
 
-	writeFile(readmePath, readme);
-	console.log(`Finalized README release notes for ${version}.`);
+	const replacement = `## Unreleased\n- No changes yet.\n\n${versionHeading}\n${body}\n`;
+	changelog = changelog.replace(/## Unreleased\n([\s\S]*?)(?=\n## |$)/, replacement);
+	fs.writeFileSync(changelogPath, changelog, 'utf8');
+	console.log(`Finalized CHANGELOG release notes for ${version}.`);
 }
 
 function main() {
 	const dryRun = process.argv.includes('--dry-run');
-	const rootPackagePath = path.join(rootDir, 'package.json');
-	const rootPackage = readJson(rootPackagePath);
-	const rootVersion = rootPackage.version;
-
-	if (!rootVersion) {
-		throw new Error('Root package.json has no version field.');
+	const version = resolveTargetVersion();
+	if (!version || !isSemver(version)) {
+		throw new Error(`Invalid version '${version}'. Expected semver like 1.0.0 or 1.0.0-rc.1`);
 	}
 
-	const packageDirs = ['client', 'server'];
 	for (const dir of packageDirs) {
 		const packagePath = path.join(rootDir, dir, 'package.json');
 		const lockfilePath = path.join(rootDir, dir, 'package-lock.json');
-		if (dryRun) {
-			console.log(`Would sync ${dir}/package.json version to ${rootVersion}`);
-			if (fs.existsSync(lockfilePath)) {
-				console.log(`Would sync ${dir}/package-lock.json version to ${rootVersion}`);
-			}
-			continue;
-		}
-		const pkg = syncPackageVersion(packagePath, rootVersion);
-		syncLockfile(lockfilePath, pkg.name, rootVersion);
+		const pkg = syncPackageVersion(packagePath, version, dryRun);
+		syncLockfileVersion(lockfilePath, pkg.name, version, dryRun);
 	}
 
-	console.log(`Synchronized client/server versions to ${rootVersion}`);
-	finalizeReleaseNotes(rootVersion, dryRun);
+	if (dryRun) {
+		console.log(`Would update versions to ${version} in package manifests and lockfiles.`);
+	} else {
+		console.log(`Updated versions to ${version} in package manifests and lockfiles.`);
+	}
+	finalizeReleaseNotes(version, dryRun);
 }
 
 main();
