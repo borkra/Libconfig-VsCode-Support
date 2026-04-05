@@ -12,7 +12,7 @@ export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
 
 const tempFixtureDirs = new Set<string>();
-const { publisher, name } = require('../../package.json');
+const { publisher, name } = require('../../../package.json');
 const EXTENSION_ID = `${publisher}.${name}`;
 
 export async function activate(docUri: vscode.Uri) {

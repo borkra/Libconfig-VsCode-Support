@@ -53,6 +53,6 @@ jobs:
       - name: Publish GitHub release with VSIX
         run: |
           gh release create "v${{ steps.resolve-version.outputs.version }}" \
-            libconfig-borkra.vsix \
+            *.vsix \
             --target "$(git rev-parse HEAD)" \
             --generate-notes
