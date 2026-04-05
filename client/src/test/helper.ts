@@ -12,7 +12,8 @@ export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
 
 const tempFixtureDirs = new Set<string>();
-const EXTENSION_ID = 'borkra.libconfig-lang';
+const { publisher, name } = require('../../package.json');
+const EXTENSION_ID = `${publisher}.${name}`;
 
 export async function activate(docUri: vscode.Uri) {
 	const extInstance = vscode.extensions.getExtension(EXTENSION_ID);

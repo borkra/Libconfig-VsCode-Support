@@ -75,7 +75,7 @@ export async function activate(context: ExtensionContext): Promise<LibconfigExte
 	const conflictingExtensionIds = configuredConflictingExtensionIds.filter((id: string) => !!vscode.extensions.getExtension(id));
 	if (conflictingExtensionIds.length > 0) {
 		vscode.window.showErrorMessage(
-			`borkra.libconfig-lang conflicts with installed LibConfig variants: ${conflictingExtensionIds.join(', ')}. Uninstall the conflicting variant before using this extension.`
+			`${context.extension.id} conflicts with installed LibConfig variants: ${conflictingExtensionIds.join(', ')}. Uninstall the conflicting variant before using this extension.`
 		);
 		return undefined;
 	}

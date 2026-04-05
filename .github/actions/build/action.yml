@@ -20,5 +20,5 @@ runs:
       shell: bash
 
     - name: Package VSIX
-      run: npx @vscode/vsce package --no-yarn --out libconfig-lang.vsix
+      run: npx @vscode/vsce package --no-yarn --out libconfig-borkra.vsix
       shell: bash

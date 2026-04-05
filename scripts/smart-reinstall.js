@@ -3,10 +3,10 @@
 
 const { execSync } = require('child_process');
 const path = require('path');
-const { conflictingExtensionIds: CONFLICTING_EXTENSION_IDS = [] } = require('../package.json');
+const { publisher, name, conflictingExtensionIds: CONFLICTING_EXTENSION_IDS = [] } = require('../package.json');
 
-const EXTENSION_ID = 'borkra.libconfig-lang';
-const VSIX_FILE = path.resolve(__dirname, '..', 'libconfig-lang.vsix');
+const EXTENSION_ID = `${publisher}.${name}`;
+const VSIX_FILE = path.resolve(__dirname, '..', `${name}.vsix`);
 
 /**
  * Execute a shell command and return the output
