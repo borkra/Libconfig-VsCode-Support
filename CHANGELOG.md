@@ -3,6 +3,9 @@
 ## Unreleased
 - No changes yet.
 
+## 1.1.2
+- No changes yet.
+
 ## 1.1.1
 - Updated documentation per VSCode marketplace requirements
 
