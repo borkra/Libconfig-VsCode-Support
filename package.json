@@ -1,6 +1,6 @@
 {
 	"name": "libconfig-borkra",
-	"displayName": "LibConfig",
+	"displayName": "LibConfig File Support",
 	"description": "LibConfig language support for VS Code",
 	"version": "1.1.2",
 	"icon": "media/icon.png",
