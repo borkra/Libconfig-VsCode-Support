@@ -1,10 +1,12 @@
 # Change Log
 
 ## Unreleased
-- No changes yet.
+- Fixed repository URL in `package.json` (was pointing to `mtayler`, now correctly points to `borkra`).
+- Fixed `LibConfigServer.trace.server` configuration key casing to match the LSP client ID so VS Code trace logging works correctly.
+- Release script (`scripts/update-version.js`) now removes the `## Unreleased` section entirely on publish instead of leaving a placeholder.
 
 ## 1.1.2
-- No changes yet.
+- CI and workflow updates.
 
 ## 1.1.1
 - Updated documentation per VSCode marketplace requirements

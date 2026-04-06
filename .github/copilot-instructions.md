@@ -46,7 +46,7 @@ Libconfig-VsCode-Support/
     e2e.js / e2e.sh                 — E2E test runner
     bundle.js                       — esbuild bundler for client + server
     smart-reinstall.js              — Reinstall script aware of dependent extensions
-    update-version.js               — Bumps version across package.json files
+    update-version.js               — Use this script to bump versions. Never manually edit `package.json` versions or `CHANGELOG.md` during a release. Run `node scripts/update-version.js <version>`. It updates version in root, `client/`, and `server/` `package.json`, and moves `## Unreleased` content into `## <version>` in `CHANGELOG.md`, removing the Unreleased section. Use `--dry-run` to validate without writing. Do not edit `package-lock.json` versions — the script intentionally skips them.
 ```
 
 ---
@@ -59,7 +59,7 @@ Libconfig-VsCode-Support/
 | `watch` | `npm run watch` | `watch` | Incremental watch mode |
 | `test` | `npm test` | `test` | E2E test suite |
 | `bundle` | `npm run bundle` | `bundle` | esbuild bundle for client + server |
-| `package:local` | `npm run package:local` | `package:local` | Compile + bundle + produce `libconfig-lang.vsix` |
+| `package:local` | `npm run package:local` | `package:local` | Compile + bundle + produce `libconfig-borkra.vsix` |
 | `install:local` | `npm run install:local` | `install:local` | `package:local` then installs into code + code-insiders |
 | `clean` | `npm run clean` | `clean` | Remove all build artifacts and `.vsix` |
 | `clean:full` | `npm run clean:full` | `clean:full` | `clean` + remove all `node_modules` |
@@ -71,13 +71,13 @@ Use the VS Code **`install:local`** task, or run:
 
 ```bash
 npm run install:local
-# Produces libconfig-lang.vsix and installs into VS Code stable + Insiders
+# Produces libconfig-borkra.vsix and installs into VS Code stable + Insiders
 # Reload the VS Code window after installation to activate the new version
 ```
 
 ### Smart reinstall (when swupdate extension is also installed)
 
-Because `borkra.swupdate-lang` declares `borkra.libconfig-lang` as a dependency, VS Code can
+Because `borkra.swupdate-lang` declares `borkra.libconfig-borkra` as a dependency, VS Code can
 refuse to uninstall libconfig if swupdate is also installed. Use the smart reinstaller:
 
 ```bash
@@ -96,11 +96,11 @@ then run swupdate tests from the `../Swupdate-VSCode-Support` workspace:
 npm run package:local
 
 # From the Swupdate-VSCode-Support workspace — run tests:
-LIBCONFIG_VSIX_PATH=../Libconfig-VsCode-Support/libconfig-lang.vsix npm test
+LIBCONFIG_VSIX_PATH=../Libconfig-VsCode-Support/libconfig-borkra.vsix npm test
 ```
 
 Alternatively, use the VS Code **`test`** task in the Swupdate-VSCode-Support workspace, which has
-`LIBCONFIG_VSIX_PATH` pre-configured (points to `../Libconfig-VsCode-Support/libconfig-lang.vsix`).
+`LIBCONFIG_VSIX_PATH` pre-configured (points to `../Libconfig-VsCode-Support/libconfig-borkra.vsix`).
 
 ---
 
@@ -136,9 +136,9 @@ The exported API object:
 
 Full contract documented in `docs/PARSER_API.md`. Key points:
 
-- Extension ID: `borkra.libconfig-lang`
+- Extension ID: `borkra.libconfig-borkra`
 - Consumers must list this ID in `extensionDependencies` in their `package.json`
-- Activate via `vscode.extensions.getExtension('borkra.libconfig-lang').activate()`
+- Activate via `vscode.extensions.getExtension('borkra.libconfig-borkra').activate()`
 - Returns `LibconfigExtensionApi` with `getParsedDocument` and `getCompletionItems`
 
 `ParsedLibconfigNode` shape:

@@ -17,7 +17,7 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/mtayler/Libconfig-VsCode-Support"
+		"url": "https://github.com/borkra/Libconfig-VsCode-Support"
 	},
 	"engines": {
 		"vscode": "^1.82.0"
@@ -52,7 +52,7 @@
 			"type": "object",
 			"title": "LibConfig Configuration",
 			"properties": {
-				"libConfigServer.trace.server": {
+				"LibConfigServer.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
