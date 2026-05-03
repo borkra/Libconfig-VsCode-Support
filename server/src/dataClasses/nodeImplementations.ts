@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 LibConfig VS Code Support contributors
 'use strict'
 
+import * as l10n from '@vscode/l10n';
 import {
 	LibConfigPropertyNode,
 	BaseLibConfigNode,
@@ -130,7 +131,7 @@ export class ObjectLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Ob
 	 */
 	private validate (child: LibConfigPropertyNode): boolean {
 		if (this.propertyNames.has(child.name)) {
-			BaseLibConfigNodeImpl.Error(`Duplicate properties with name '${child.name}' found!`, child.offset, child.length);
+			BaseLibConfigNodeImpl.Error(l10n.t("Duplicate properties with name '{0}' found!", child.name), child.offset, child.length);
 			return false;
 		}
 		return true;
@@ -229,7 +230,7 @@ export class ArrayLibConfigNodeImpl extends BaseLibConfigNodeImpl implements Arr
 	private validate (child: ScalarLibConfigNode): boolean {
 		const type: 'string' | 'number' | 'boolean' = this._children.length > 0 ? this._children[0].type : child.type;
 		if (type !== child.type) {
-			BaseLibConfigNodeImpl.Error(`Array must have consistent type: first element type is '${type}'`, child.offset, child.length);
+			BaseLibConfigNodeImpl.Error(l10n.t("Array must have consistent type: first element type is '{0}'", type), child.offset, child.length);
 			return false;
 		}
 		return true;

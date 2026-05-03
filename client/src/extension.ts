@@ -75,7 +75,11 @@ export async function activate(context: ExtensionContext): Promise<LibconfigExte
 	const conflictingExtensionIds = configuredConflictingExtensionIds.filter((id: string) => !!vscode.extensions.getExtension(id));
 	if (conflictingExtensionIds.length > 0) {
 		vscode.window.showErrorMessage(
-			`${context.extension.id} conflicts with installed LibConfig variants: ${conflictingExtensionIds.join(', ')}. Uninstall the conflicting variant before using this extension.`
+			vscode.l10n.t(
+				"{0} conflicts with installed LibConfig variants: {1}. Uninstall the conflicting variant before using this extension.",
+				context.extension.id,
+				conflictingExtensionIds.join(', ')
+			)
 		);
 		return undefined;
 	}
@@ -102,7 +106,8 @@ export async function activate(context: ExtensionContext): Promise<LibconfigExte
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for libconfig documents
-		documentSelector: [{ scheme: 'file', language: 'libconfig' }]
+		documentSelector: [{ scheme: 'file', language: 'libconfig' }],
+		initializationOptions: vscode.l10n.uri ? { l10nUri: vscode.l10n.uri.toString() } : {}
 	};
 
 	// Create the language client and start the client.

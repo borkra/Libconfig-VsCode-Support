@@ -1,0 +1,6 @@
+{
+	"extension.displayName": "LibConfig File Support",
+	"extension.description": "LibConfig language support for VS Code",
+	"config.title": "LibConfig Configuration",
+	"config.trace.description": "Traces the communication between VS Code and the language server."
+}

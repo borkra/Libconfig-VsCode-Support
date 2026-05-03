@@ -1,0 +1,17 @@
+{
+  "{0} conflicts with installed LibConfig variants: {1}. Uninstall the conflicting variant before using this extension.": "{0} conflicts with installed LibConfig variants: {1}. Uninstall the conflicting variant before using this extension.",
+  "Expected a quoted include path after @include": "Expected a quoted include path after @include",
+  "Expected a property value name": "Expected a property value name",
+  "Expected a colon or equal": "Expected a colon or equal",
+  "Invalid boolean value '{0}'. Use 'true' or 'false'.": "Invalid boolean value '{0}'. Use 'true' or 'false'.",
+  "Sign prefix is not valid for hexadecimal, binary, or octal literals": "Sign prefix is not valid for hexadecimal, binary, or octal literals",
+  "Expected a value (number, boolean, string, array, list, or group)": "Expected a value (number, boolean, string, array, list, or group)",
+  "Expected a scalar value (number, boolean, or string)": "Expected a scalar value (number, boolean, or string)",
+  "Expected a comma": "Expected a comma",
+  "Trailing comma in list may not be supported by older libconfig parsers.": "Trailing comma in list may not be supported by older libconfig parsers.",
+  "Trailing comma in array may not be supported by older libconfig parsers.": "Trailing comma in array may not be supported by older libconfig parsers.",
+  "Use ';' instead of ',' as a setting terminator for parser compatibility.": "Use ';' instead of ',' as a setting terminator for parser compatibility.",
+  "Missing ';' terminator may not be supported by all parsers.": "Missing ';' terminator may not be supported by all parsers.",
+  "Duplicate properties with name '{0}' found!": "Duplicate properties with name '{0}' found!",
+  "Array must have consistent type: first element type is '{0}'": "Array must have consistent type: first element type is '{0}'"
+}

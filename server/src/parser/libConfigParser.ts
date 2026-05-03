@@ -31,12 +31,10 @@ import {
 	ScalarLibConfigNode,
 	ArrayLibConfigNodeImpl
 } from '../dataClasses';
-import * as nls from 'vscode-nls';
+import * as l10n from '@vscode/l10n';
 import {
 	LibConfigScanner
 } from '../scanner/libConfigScanner';
-
-const localize = nls.loadMessageBundle();
 
 const HEX_NUMBER_RE = /^0[xX][0-9a-fA-F]+$/;
 const BIN_NUMBER_RE = /^0[bB][01]+$/;
@@ -46,35 +44,29 @@ const WHITESPACE_CHAR_RE = /\s/;
 type ParseCacheEntry = { version: number; text: string; result: LibConfigDocument };
 const parseCache = new Map<string, ParseCacheEntry>();
 
-const scanErrorMap: Partial<Record<ScanError, { key: string; message: string; code: ErrorCode; severity?: DiagnosticSeverity }>> = {
+const scanErrorMap: Partial<Record<ScanError, { message: string; code: ErrorCode; severity?: DiagnosticSeverity }>> = {
 	[ScanError.InvalidUnicode]: {
-		key: 'InvalidUnicode',
 		message: 'Invalid unicode sequence in string.',
 		code: ErrorCode.InvalidUnicode
 	},
 	[ScanError.InvalidEscapeCharacter]: {
-		key: 'InvalidEscapeCharacter',
 		message: 'Unsupported escape sequence. Only \\\\, \\n, \\r, \\t, \\f, \\a, \\b, \\v, \\" and \\xNN are defined.',
 		code: ErrorCode.InvalidEscapeCharacter,
 		severity: DiagnosticSeverity.Warning
 	},
 	[ScanError.UnexpectedEndOfNumber]: {
-		key: 'UnexpectedEndOfNumber',
 		message: 'Unexpected end of number.',
 		code: ErrorCode.UnexpectedEndOfNumber
 	},
 	[ScanError.UnexpectedEndOfComment]: {
-		key: 'UnexpectedEndOfComment',
 		message: 'Unexpected end of comment.',
 		code: ErrorCode.UnexpectedEndOfComment
 	},
 	[ScanError.UnexpectedEndOfString]: {
-		key: 'UnexpectedEndOfString',
 		message: 'Unexpected end of string.',
 		code: ErrorCode.UnexpectedEndOfString
 	},
 	[ScanError.InvalidCharacter]: {
-		key: 'InvalidCharacter',
 		message: 'Invalid number format. Base prefixes (0x, 0b, 0o/0q) must come after 0. Valid suffixes are L or LL.',
 		code: ErrorCode.InvalidCharacter
 	}
@@ -152,7 +144,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		const includeToken = _scanNext();
 		if (includeToken !== SyntaxKind.StringLiteral) {
 			_error(
-				localize('ExpectedIncludePath', 'Expected a quoted include path after @include'),
+				l10n.t('Expected a quoted include path after @include'),
 				ErrorCode.ValueExpected,
 				[SyntaxKind.SemicolonToken]
 			);
@@ -166,7 +158,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		parent: ObjectLibConfigNode | LibConfigPropertyNode | null) : LibConfigPropertyNode | undefined {
 		if (scanner.getToken() !== SyntaxKind.PropertyName) {
 			_error(
-				localize('ExpectedProperty', "Expected a property value name"),
+				l10n.t("Expected a property value name"),
 				ErrorCode.PropertyExpected,
 				[SyntaxKind.SemicolonToken]);
 			return;
@@ -182,7 +174,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		let token = _scanNext();
 		if (token !== SyntaxKind.EqualToken && token !== SyntaxKind.ColonToken) {
 			_error(
-				localize('ExpectedSetter', 'Expected a colon or equal'),
+				l10n.t('Expected a colon or equal'),
 				ErrorCode.ColonExpected,
 				[SyntaxKind.SemicolonToken]
 			);
@@ -234,21 +226,21 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				const tokenValue = scanner.getTokenValue().toLowerCase();
 				if (tokenValue.startsWith('tru') || tokenValue.startsWith('fal')) {
 					_error(
-						localize('InvalidBoolean', `Invalid boolean value '${scanner.getTokenValue()}'. Use 'true' or 'false'.`),
+						l10n.t("Invalid boolean value '{0}'. Use 'true' or 'false'.", scanner.getTokenValue()),
 						ErrorCode.ValueExpected,
 						[],
 						[SyntaxKind.SemicolonToken]
 					);
 				} else if (SIGNED_BASE_NUMBER_RE.test(tokenValue)) {
 					_error(
-						localize('SignedBaseNumber', 'Sign prefix is not valid for hexadecimal, binary, or octal literals'),
+						l10n.t('Sign prefix is not valid for hexadecimal, binary, or octal literals'),
 						ErrorCode.ValueExpected,
 						[],
 						[SyntaxKind.SemicolonToken]
 					);
 				} else {
 					_error(
-						localize('UnrecognizedType', 'Expected a value (number, boolean, string, array, list, or group)'),
+						l10n.t('Expected a value (number, boolean, string, array, list, or group)'),
 						ErrorCode.ValueExpected,
 						[],
 						[SyntaxKind.SemicolonToken]
@@ -288,21 +280,21 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				const tokenValue = scanner.getTokenValue().toLowerCase();
 				if (tokenValue.startsWith('tru') || tokenValue.startsWith('fal')) {
 					_error(
-						localize('InvalidBoolean', `Invalid boolean value '${scanner.getTokenValue()}'. Use 'true' or 'false'.`),
+						l10n.t("Invalid boolean value '{0}'. Use 'true' or 'false'.", scanner.getTokenValue()),
 						ErrorCode.ValueExpected,
 						[],
 						[]
 					);
 				} else if (SIGNED_BASE_NUMBER_RE.test(tokenValue)) {
 					_error(
-						localize('SignedBaseNumber', 'Sign prefix is not valid for hexadecimal, binary, or octal literals'),
+						l10n.t('Sign prefix is not valid for hexadecimal, binary, or octal literals'),
 						ErrorCode.ValueExpected,
 						[],
 						[]
 					);
 				} else {
 					_error(
-						localize('UnrecognizedScalarType', 'Expected a scalar value (number, boolean, or string)'),
+						l10n.t('Expected a scalar value (number, boolean, or string)'),
 						ErrorCode.ValueExpected,
 						[],
 						[]
@@ -400,7 +392,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			const startPos = scanner.getPosition();
 			if (nextToken !== SyntaxKind.CommaToken) {
 				_error(
-					localize('CommaExpected', 'Expected a comma'),
+					l10n.t('Expected a comma'),
 					ErrorCode.CommaExpected,
 					[SyntaxKind.CloseParenToken],
 					[SyntaxKind.CommaToken]
@@ -419,7 +411,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			nextToken = _scanNext();
 			if (nextToken === SyntaxKind.CloseParenToken) {
 				_errorAtRange(
-					localize('TrailingCommaCompatibilityList', "Trailing comma in list may not be supported by older libconfig parsers."),
+					l10n.t("Trailing comma in list may not be supported by older libconfig parsers."),
 					ErrorCode.TrailingCommaCompatibility,
 					commaStart,
 					commaEnd,
@@ -468,7 +460,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			const startPos = scanner.getPosition();
 			if (nextToken !== SyntaxKind.CommaToken) {
 				_error(
-					localize('CommaExpected', 'Expected a comma'),
+					l10n.t('Expected a comma'),
 					ErrorCode.CommaExpected,
 					[SyntaxKind.CloseBracketToken],
 					[SyntaxKind.CommaToken]
@@ -487,7 +479,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			nextToken = _scanNext();
 			if (nextToken === SyntaxKind.CloseBracketToken) {
 				_errorAtRange(
-					localize('TrailingCommaCompatibilityArray', "Trailing comma in array may not be supported by older libconfig parsers."),
+					l10n.t("Trailing comma in array may not be supported by older libconfig parsers."),
 					ErrorCode.TrailingCommaCompatibility,
 					commaStart,
 					commaEnd,
@@ -520,7 +512,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 
 		if (tok === SyntaxKind.CommaToken) {
 			_errorAtRange(
-				localize('CommaTerminatorCompatibility', "Use ';' instead of ',' as a setting terminator for parser compatibility."),
+				l10n.t("Use ';' instead of ',' as a setting terminator for parser compatibility."),
 				ErrorCode.SemicolonExpected,
 				scanner.getTokenOffset(),
 				scanner.getTokenOffset() + scanner.getTokenLength(),
@@ -531,7 +523,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 		}
 
 		_errorAtRange(
-			localize('MissingSemicolonCompatibility', "Missing ';' terminator may not be supported by all parsers."),
+			l10n.t("Missing ';' terminator may not be supported by all parsers."),
 			ErrorCode.SemicolonExpected,
 			valueEndOffset,
 			valueEndOffset,
@@ -582,9 +574,9 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			if (errorInfo.severity !== undefined) {
 				const start = scanner.getTokenOffset();
 				const end = start + scanner.getTokenLength();
-				_errorAtRange(localize(errorInfo.key, errorInfo.message), errorInfo.code, start, end, errorInfo.severity);
+				_errorAtRange(l10n.t(errorInfo.message), errorInfo.code, start, end, errorInfo.severity);
 			} else {
-				_error(localize(errorInfo.key, errorInfo.message), errorInfo.code);
+				_error(l10n.t(errorInfo.message), errorInfo.code);
 			}
 			return true;
 		}
@@ -609,7 +601,7 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			if (setting) {
 				if (rootPropertyNames.has(setting.name)) {
 					_errorAtRange(
-						`Duplicate properties with name '${setting.name}' found!`,
+						l10n.t("Duplicate properties with name '{0}' found!", setting.name),
 						ErrorCode.DuplicateKey,
 						setting.offset,
 						setting.offset + setting.length
