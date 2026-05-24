@@ -6,6 +6,7 @@
 - Added `l10n/bundle.l10n.json` as the English source bundle for all runtime strings.
 - Added `extract-l10n` npm script to regenerate `bundle.l10n.json` from source; runs automatically as part of `package:local` and `vscode:prepublish`.
 - Migrated server from `vscode-nls` to `@vscode/l10n`.
+- Added `sbom`, `sbom:cyclonedx`, and `sbom:spdx` npm scripts to generate CycloneDX and SPDX SBOM outputs.
 
 ## 1.1.3
 - Fixed repository URL in `package.json` (was pointing to `mtayler`, now correctly points to `borkra`).
