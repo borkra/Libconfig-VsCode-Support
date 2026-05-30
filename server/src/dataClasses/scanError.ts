@@ -10,5 +10,6 @@ export enum ScanError {
 	InvalidUnicode,
 	InvalidEscapeCharacter,
 	InvalidCharacter,
+	InvalidStringCharacter,
 	UnexpectedEndOfPropertyName
 }

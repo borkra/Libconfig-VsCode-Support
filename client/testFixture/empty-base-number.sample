@@ -1,0 +1,3 @@
+emptyHex = 0x;
+emptyBin = 0b;
+emptyOct = 0o;

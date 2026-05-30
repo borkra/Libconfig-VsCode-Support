@@ -69,8 +69,12 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 			if (nextCh === CharacterCodes.x || nextCh === CharacterCodes.X) {
 				// Hexadecimal
 				pos += 2;
+				const hexDigitsStart = pos;
 				while (pos < text.length && isHexDigit(text.charCodeAt(pos))) {
 					pos++;
+				}
+				if (pos === hexDigitsStart) {
+					scanError = ScanError.UnexpectedEndOfNumber;
 				}
 				// optional L or LL suffix
 				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
@@ -88,8 +92,12 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 			if (nextCh === CharacterCodes.b || nextCh === CharacterCodes.B) {
 				// Binary
 				pos += 2;
+				const binDigitsStart = pos;
 				while (pos < text.length && (text.charCodeAt(pos) === CharacterCodes._0 || text.charCodeAt(pos) === CharacterCodes._1)) {
 					pos++;
+				}
+				if (pos === binDigitsStart) {
+					scanError = ScanError.UnexpectedEndOfNumber;
 				}
 				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
 					pos++;
@@ -107,8 +115,12 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				nextCh === CharacterCodes.q || nextCh === CharacterCodes.Q) {
 				// Octal
 				pos += 2;
+				const octDigitsStart = pos;
 				while (pos < text.length && text.charCodeAt(pos) >= CharacterCodes._0 && text.charCodeAt(pos) <= CharacterCodes._7) {
 					pos++;
+				}
+				if (pos === octDigitsStart) {
+					scanError = ScanError.UnexpectedEndOfNumber;
 				}
 				if (pos < text.length && (text.charCodeAt(pos) === CharacterCodes.L)) {
 					pos++;
@@ -276,7 +288,7 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					scanError = ScanError.UnexpectedEndOfString;
 					break;
 				} else {
-					scanError = ScanError.InvalidCharacter;
+					scanError = ScanError.InvalidStringCharacter;
 					// mark as error but continue with string
 				}
 			}
@@ -524,22 +536,13 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				}
 				if (tokenOffset !== pos) {
 					value = text.substring(tokenOffset, pos);
-					// keywords: true, false, null
-					switch (value) {
-						case 'true': return token = SyntaxKind.TrueKeyword;
-						case 'false': return token = SyntaxKind.FalseKeyword;
-					}
 					return token = SyntaxKind.Unknown;
 				}
 				}
-				// Handle case-insensitive booleans that start with upper-case letters
-				// (already handled above via isValidPropertyCharacterStart, but keep fallthrough clean)
-				{
-				// some
+				// Fallback: a single symbol that is not unknown-content (e.g. a stray separator)
 				value += String.fromCharCode(code);
 				pos++;
 				return token = SyntaxKind.Unknown;
-		}
 	}
 
 	function isUnknownContentCharacter(code: CharacterCodes) {

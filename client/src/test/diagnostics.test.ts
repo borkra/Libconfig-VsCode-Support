@@ -21,6 +21,10 @@ const MIN_ERROR_CASES: [string, number][] = [
   ['array-missing-comma',    1],  // array elements must be separated by commas
   ['node-constraint-errors', 3],  // unique names in group; homogeneous arrays
   ['invalid-boolean',        2],  // boolean must be exactly 'true' or 'false'
+  ['unclosed-array',         1],  // array must be closed with ']'
+  ['unclosed-list',          1],  // list must be closed with ')'
+  ['unclosed-group',         1],  // group must be closed with '}'
+  ['empty-base-number',      3],  // base prefixes (0x/0b/0o) require digits
 ]
 
 export async function runDiagnosticsTest(): Promise<void> {

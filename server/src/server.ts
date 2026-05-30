@@ -159,7 +159,8 @@ function computeCompletionItemsForText(text: string, offset: number): Completion
 		return [includeCompletion];
 	}
 
-	if (linePrefix.includes('=')) {
+	// libconfig accepts both '=' and ':' as name/value separators
+	if (linePrefix.includes('=') || linePrefix.includes(':')) {
 		return valueCompletions;
 	}
 

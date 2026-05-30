@@ -44,31 +44,34 @@ const WHITESPACE_CHAR_RE = /\s/;
 type ParseCacheEntry = { version: number; text: string; result: LibConfigDocument };
 const parseCache = new Map<string, ParseCacheEntry>();
 
-const scanErrorMap: Partial<Record<ScanError, { message: string; code: ErrorCode; severity?: DiagnosticSeverity }>> = {
-	[ScanError.InvalidUnicode]: {
-		message: 'Invalid unicode sequence in string.',
-		code: ErrorCode.InvalidUnicode
-	},
+// `message` is a thunk so the l10n.t() call runs at use-time (after l10n.config)
+// with a string literal argument the l10n extractor can pick up.
+const scanErrorMap: Partial<Record<ScanError, { message: () => string; code: ErrorCode; severity?: DiagnosticSeverity }>> = {
 	[ScanError.InvalidEscapeCharacter]: {
-		message: 'Unsupported escape sequence. Only \\\\, \\n, \\r, \\t, \\f, \\a, \\b, \\v, \\" and \\xNN are defined.',
+		message: () => l10n.t('Unsupported escape sequence. Only \\\\, \\n, \\r, \\t, \\f, \\a, \\b, \\v, \\" and \\xNN are defined.'),
 		code: ErrorCode.InvalidEscapeCharacter,
 		severity: DiagnosticSeverity.Warning
 	},
 	[ScanError.UnexpectedEndOfNumber]: {
-		message: 'Unexpected end of number.',
+		message: () => l10n.t('Unexpected end of number.'),
 		code: ErrorCode.UnexpectedEndOfNumber
 	},
 	[ScanError.UnexpectedEndOfComment]: {
-		message: 'Unexpected end of comment.',
+		message: () => l10n.t('Unexpected end of comment.'),
 		code: ErrorCode.UnexpectedEndOfComment
 	},
 	[ScanError.UnexpectedEndOfString]: {
-		message: 'Unexpected end of string.',
+		message: () => l10n.t('Unexpected end of string.'),
 		code: ErrorCode.UnexpectedEndOfString
 	},
 	[ScanError.InvalidCharacter]: {
-		message: 'Invalid number format. Base prefixes (0x, 0b, 0o/0q) must come after 0. Valid suffixes are L or LL.',
+		message: () => l10n.t('Invalid number format. Base prefixes (0x, 0b, 0o/0q) must come after 0. Valid suffixes are L or LL.'),
 		code: ErrorCode.InvalidCharacter
+	},
+	[ScanError.InvalidStringCharacter]: {
+		message: () => l10n.t('Unescaped control character in string literal.'),
+		code: ErrorCode.InvalidCharacter,
+		severity: DiagnosticSeverity.Warning
 	}
 };
 
@@ -360,6 +363,9 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 				_scanNext();
 			}
 		}
+		if (scanner.getToken() !== SyntaxKind.CloseBraceToken) {
+			_error(l10n.t("Expected '}' to close the group"), ErrorCode.CommaOrCloseBraceExpected);
+		}
 		back.length = scanner.getPosition() - back.offset;
 		return back;
 	}
@@ -426,6 +432,9 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			nextToken = _takeBufferedOrScanNext();
 		}
 
+		if (scanner.getToken() !== SyntaxKind.CloseParenToken) {
+			_error(l10n.t("Expected ')' to close the list"), ErrorCode.CloseParenExpected);
+		}
 		back.length = scanner.getPosition() - back.offset;
 		return back;
 	}
@@ -496,7 +505,17 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			nextToken = _takeBufferedOrScanNext();
 		}
 
-		back.length = scanner.getTokenOffset() - back.offset;
+		back.length = scanner.getPosition() - back.offset;
+
+		if (scanner.getToken() !== SyntaxKind.CloseBracketToken) {
+			if (scanner.getToken() === SyntaxKind.SemicolonToken) {
+				// Statement ended without ']': exclude the ';' from the array and let the
+				// setting terminator consume it, so no spurious "missing terminator" follows.
+				back.length = scanner.getTokenOffset() - back.offset;
+				hasBufferedToken = true;
+			}
+			_error(l10n.t("Expected ']' to close the array"), ErrorCode.CommaOrCloseBacketExpected);
+		}
 
 		return back;
 	}
@@ -574,9 +593,9 @@ export function ParseLibConfigDocument(textDocument: TextDocument): LibConfigDoc
 			if (errorInfo.severity !== undefined) {
 				const start = scanner.getTokenOffset();
 				const end = start + scanner.getTokenLength();
-				_errorAtRange(l10n.t(errorInfo.message), errorInfo.code, start, end, errorInfo.severity);
+				_errorAtRange(errorInfo.message(), errorInfo.code, start, end, errorInfo.severity);
 			} else {
-				_error(l10n.t(errorInfo.message), errorInfo.code);
+				_error(errorInfo.message(), errorInfo.code);
 			}
 			return true;
 		}

@@ -24,6 +24,7 @@ export enum ErrorCode {
 	ValueExpected,
 	CommaOrCloseBacketExpected,
 	CommaOrCloseBraceExpected,
+	CloseParenExpected,
 	TrailingComma,
 	DuplicateKey,
 	CommentNotPermitted,
