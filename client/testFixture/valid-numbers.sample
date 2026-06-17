@@ -1,0 +1,11 @@
+negInt = -5;
+negFloat = -5.5;
+negLeadingDot = -.5;
+posInt = +3;
+posLeadingDot = +.5;
+negExp = -1.5e3;
+negArray = [-1, -2, -3];
+negList = (-7, -8.25);
+group = {
+	offset = -4096;
+};

@@ -49,6 +49,18 @@ export async function runDiagnosticsTest(): Promise<void> {
   await testUnrecognizedValueDiagnostics(await createTempFixtureDocUri('unrecognized-value.cfg', [
     { source: 'unrecognized-value.sample', target: 'unrecognized-value.cfg' }
   ]))
+
+  // Regression: signed (especially negative) decimal numbers must parse without errors.
+  await testNoErrorDiagnostics(await createTempFixtureDocUri('valid-numbers.cfg', [
+    { source: 'valid-numbers.sample', target: 'valid-numbers.cfg' }
+  ]))
+}
+
+async function testNoErrorDiagnostics(docUri: vscode.Uri) {
+  await activate(docUri)
+  const actualDiagnostics = await waitForDiagnostics(docUri)
+  const errors = actualDiagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error)
+  assert.strictEqual(errors.length, 0, `Expected no errors, got: ${errors.map(e => e.message).join('; ')}`)
 }
 
 async function assertMinErrors(docUri: vscode.Uri, minErrors: number): Promise<void> {

@@ -20,9 +20,7 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 		tokenOffset = 0,
 		token: SyntaxKind = SyntaxKind.Unknown,
 		lineNumber = 0,
-		lineStartOffset = 0,
 		tokenLineStartOffset = 0,
-		prevTokenLineStartOffset = 0,
 		scanError: ScanError = ScanError.None;
 
 	function scanHexDigits(count: number, exact?: boolean): number {
@@ -311,8 +309,6 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 		scanError = ScanError.None;
 
 		tokenOffset = pos;
-		lineStartOffset = lineNumber;
-		prevTokenLineStartOffset = tokenLineStartOffset;
 
 		if (pos >= len) {
 			// at the end
@@ -458,24 +454,10 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 				}
 				value = text.substring(s2, pos);
 				return token = SyntaxKind.LineCommentTrivia;
+			// A sign prefix ('+' or '-') followed by a digit or '.' begins a number.
+			// Both signs share the same handling — the sign char is appended once and
+			// pos advanced once, then we fall through to scan the numeric body.
 			case CharacterCodes.minus:
-				value += String.fromCharCode(code);
-				pos++;
-				if (pos === len || !isDigit(text.charCodeAt(pos))) {
-					return token = SyntaxKind.Unknown;
-				}
-				if (pos + 1 < len && text.charCodeAt(pos) === CharacterCodes._0 && isBasePrefix(text.charCodeAt(pos + 1))) {
-					const invalidStart = pos;
-					pos += 2;
-					while (pos < len && isAlphaNumeric(text.charCodeAt(pos))) {
-						pos++;
-					}
-					value += text.substring(invalidStart, pos);
-					return token = SyntaxKind.Unknown;
-				}
-			// found a minus, followed by a number so
-			// we fall through to proceed with scanning
-			// numbers
 			case CharacterCodes.plus:
 				value += String.fromCharCode(code);
 				pos++;
@@ -491,7 +473,7 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 					value += text.substring(invalidStart, pos);
 					return token = SyntaxKind.Unknown;
 				}
-			// found a plus, followed by a digit or dot — fall through to scan number
+			// found a sign, followed by a digit or dot — fall through to scan number
 			case CharacterCodes._0:
 			case CharacterCodes._1:
 			case CharacterCodes._2:
@@ -579,8 +561,6 @@ export function CreateDefaultScanner(text: string, ignoreTrivia: boolean = false
 		getTokenValue: () => value,
 		getTokenOffset: () => tokenOffset,
 		getTokenLength: () => pos - tokenOffset,
-		getTokenStartLine: () => lineStartOffset,
-		getTokenStartCharacter: () => tokenOffset - prevTokenLineStartOffset,
 		getTokenError: () => scanError,
 	};
 }

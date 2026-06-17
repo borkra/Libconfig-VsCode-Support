@@ -36,14 +36,6 @@ export interface LibConfigScanner {
 	 */
 	getTokenLength(): number;
 	/**
-	 * The zero-based start line number of the last read token.
-	 */
-	getTokenStartLine(): number;
-	/**
-	 * The zero-based start character (column) of the last read token.
-	 */
-	getTokenStartCharacter(): number;
-	/**
 	 * An error code of the last scan.
 	 */
 	getTokenError(): ScanError;
