@@ -7,6 +7,10 @@
 - Added `extract-l10n` npm script to regenerate `bundle.l10n.json` from source; runs automatically as part of `package:local` and `vscode:prepublish`.
 - Migrated server from `vscode-nls` to `@vscode/l10n`.
 - Added `sbom`, `sbom:cyclonedx`, and `sbom:spdx` npm scripts to generate CycloneDX and SPDX SBOM outputs.
+- Improved parsing reliability and error reporting for malformed structures and invalid numeric values, reducing false or confusing diagnostics.
+- Improved editing experience by making value completions work after both `=` and `:` assignment styles.
+- Added regression tests to keep these parsing and diagnostic improvements stable over time.
+- Improved test runner reliability in local/CI environments.
 
 ## 1.1.3
 - Fixed repository URL in `package.json` (was pointing to `mtayler`, now correctly points to `borkra`).
