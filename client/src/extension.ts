@@ -11,6 +11,7 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
+	State,
 	TransportKind
 } from 'vscode-languageclient/node';
 
@@ -57,12 +58,30 @@ export interface ParsedLibconfigDocument {
 }
 
 export interface LibconfigExtensionApi {
-	apiVersion: 1;
+	apiVersion: 2;
 	getParsedDocument(uri: string, text: string): Promise<ParsedLibconfigDocument>;
 	getCompletionItems(uri: string, text: string, offset: number): Promise<LibconfigCompletionEntry[]>;
+	acquireHandle(): vscode.Disposable;
 }
 
 let client: LanguageClient | undefined;
+let refCount = 0;
+let libconfigDocCount = 0;
+let serverRunning = false;
+let startPromise: Promise<void> | undefined;
+
+function ensureServerRunning(): Promise<void> {
+	if (!client) { return Promise.resolve(); }
+	if (serverRunning) { return Promise.resolve(); }
+	if (startPromise) { return startPromise; }
+	startPromise = client.start().then(() => { startPromise = undefined; });
+	return startPromise;
+}
+
+function maybeStopServer(): void {
+	if (!client || !serverRunning || refCount > 0 || libconfigDocCount > 0) { return; }
+	void client.stop();
+}
 
 export async function activate(context: ExtensionContext): Promise<LibconfigExtensionApi | undefined> {
 	if (client) {
@@ -110,7 +129,6 @@ export async function activate(context: ExtensionContext): Promise<LibconfigExte
 		initializationOptions: vscode.l10n.uri ? { l10nUri: vscode.l10n.uri.toString() } : {}
 	};
 
-	// Create the language client and start the client.
 	client = new LanguageClient(
 		'LibConfigServer',
 		'Language Server for LibConfig Documents',
@@ -118,8 +136,33 @@ export async function activate(context: ExtensionContext): Promise<LibconfigExte
 		clientOptions
 	);
 
-	// Start the client. This will also launch the server.
-	await client.start();
+	client.onDidChangeState(e => {
+		if (e.newState === State.Running) { serverRunning = true; }
+		if (e.newState === State.Stopped) { serverRunning = false; startPromise = undefined; }
+	});
+
+	// Track open libconfig documents for server lifecycle management.
+	libconfigDocCount = vscode.workspace.textDocuments.filter(d => d.languageId === 'libconfig').length;
+	context.subscriptions.push(
+		vscode.workspace.onDidOpenTextDocument(doc => {
+			if (doc.languageId === 'libconfig') {
+				libconfigDocCount++;
+				void ensureServerRunning();
+			}
+		}),
+		vscode.workspace.onDidCloseTextDocument(doc => {
+			if (doc.languageId === 'libconfig') {
+				libconfigDocCount = Math.max(0, libconfigDocCount - 1);
+				maybeStopServer();
+			}
+		})
+	);
+
+	// Start immediately if libconfig files are already open; otherwise start lazily.
+	if (libconfigDocCount > 0) {
+		await client.start();
+	}
+
 	return createExtensionApi(client);
 }
 
@@ -129,17 +172,37 @@ export function deactivate(): Thenable<void> | undefined {
 	}
 	const activeClient = client;
 	client = undefined;
+	refCount = 0;
+	libconfigDocCount = 0;
+	serverRunning = false;
+	startPromise = undefined;
 	return activeClient.stop();
 }
 
 function createExtensionApi(languageClient: LanguageClient): LibconfigExtensionApi {
 	return {
-		apiVersion: 1,
-		getParsedDocument: (uri: string, text: string): Promise<ParsedLibconfigDocument> => {
+		apiVersion: 2,
+		getParsedDocument: async (uri: string, text: string): Promise<ParsedLibconfigDocument> => {
+			await ensureServerRunning();
 			return languageClient.sendRequest(LIBCONFIG_PARSE_DOCUMENT_REQUEST, { uri, text });
 		},
-		getCompletionItems: (uri: string, text: string, offset: number): Promise<LibconfigCompletionEntry[]> => {
+		getCompletionItems: async (uri: string, text: string, offset: number): Promise<LibconfigCompletionEntry[]> => {
+			await ensureServerRunning();
 			return languageClient.sendRequest(LIBCONFIG_COMPLETION_ITEMS_REQUEST, { uri, text, offset });
+		},
+		acquireHandle: (): vscode.Disposable => {
+			refCount++;
+			void ensureServerRunning();
+			let released = false;
+			return {
+				dispose() {
+					if (!released) {
+						released = true;
+						refCount--;
+						maybeStopServer();
+					}
+				}
+			};
 		}
 	};
 }
