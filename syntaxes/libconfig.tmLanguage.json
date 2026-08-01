@@ -102,7 +102,7 @@
 		},
 		"declaration": {
 			"begin": "(?=[a-zA-Z\\*][a-zA-Z0-9_\\-\\*]*\\s*(?:=|:))",
-			"end": "[;,]|(?=[\\}\\)\\]])|$",
+			"end": "[;,]|(?=[\\}\\)\\]])",
 			"name": "meta.declaration.libconfig",
 			"patterns": [
 				{
@@ -232,7 +232,7 @@
 					"name": "keyword.operator.assignment.libconfig"
 				}
 			},
-			"end": "(?=[;,\\}\\)\\]])|$",
+			"end": "(?=[;,\\}\\)\\]])",
 			"name": "meta.assignment.libconfig",
 			"patterns": [
 				{
@@ -254,7 +254,7 @@
 					"name": "keyword.operator.assignment.libconfig"
 				}
 			},
-			"end": "(?=[;,\\}\\)\\]])|$",
+			"end": "(?=[;,\\}\\)\\]])",
 			"name": "meta.assignment.libconfig",
 			"patterns": [
 				{

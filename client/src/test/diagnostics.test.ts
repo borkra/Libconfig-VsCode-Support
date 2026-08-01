@@ -54,6 +54,12 @@ export async function runDiagnosticsTest(): Promise<void> {
   await testNoErrorDiagnostics(await createTempFixtureDocUri('valid-numbers.cfg', [
     { source: 'valid-numbers.sample', target: 'valid-numbers.cfg' }
   ]))
+
+  // Regression: adjacent string literals concatenate (like C) and must parse without
+  // errors in scalar, group, array, and list contexts.
+  await testNoErrorDiagnostics(await createTempFixtureDocUri('concatenated-strings.cfg', [
+    { source: 'concatenated-strings.sample', target: 'concatenated-strings.cfg' }
+  ]))
 }
 
 async function testNoErrorDiagnostics(docUri: vscode.Uri) {

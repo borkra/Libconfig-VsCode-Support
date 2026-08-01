@@ -120,6 +120,12 @@ export function FormatLibConfigDocument(documentText: string, options: Formattin
 						replaceContent = '';
 						break;
 					}
+					if (secondToken === SyntaxKind.StringLiteral) {
+						// Adjacent string literals concatenate; keep them on one line
+						// if the author did, otherwise preserve the line break.
+						replaceContent = lineBreak ? newLineAndIndent() : ' ';
+						break;
+					}
 				// fall through
 				case SyntaxKind.TrueKeyword:
 				case SyntaxKind.FalseKeyword:

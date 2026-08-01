@@ -1,0 +1,9 @@
+sameLine = "hello " "world";
+multiLine = "first line\n"
+	"second line\n"
+	"third line";
+group = {
+	value = "abc" "def" "ghi";
+};
+arr = ["a" "b", "c" "d", "e"];
+list = ("a" "b", "c" "d", "e");
